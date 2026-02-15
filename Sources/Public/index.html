@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>French Monkeys Academy</title>
+  <style>
+    :root {
+      --snapon-red: #D71920;
+      --snapon-black: #111111;
+      --snapon-white: #ffffff;
+      --card: #1c1c1c;
+    }
+    body {
+      margin: 0;
+      font-family: Inter, Arial, sans-serif;
+      background: var(--snapon-black);
+      color: var(--snapon-white);
+    }
+    header {
+      background: var(--snapon-red);
+      padding: 1rem 1.5rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    main {
+      padding: 1.5rem;
+      display: grid;
+      gap: 1rem;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    }
+    .card {
+      background: var(--card);
+      border: 1px solid #2d2d2d;
+      border-radius: 12px;
+      padding: 1rem;
+    }
+    code {
+      color: #ff8a8e;
+      word-break: break-all;
+    }
+    .toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      margin-top: 0.5rem;
+    }
+    .pill {
+      background: #2d2d2d;
+      border-radius: 999px;
+      padding: 0.3rem 0.7rem;
+      font-size: 0.85rem;
+    }
+    .hint { color: #ccc; font-size: 0.9rem; }
+  </style>
+</head>
+<body>
+  <header>
+    <strong>French Monkeys Academy</strong>
+    <span>Mechanic Training Platform Starter</span>
+  </header>
+
+  <main>
+    <section class="card">
+      <h2>Environment Ready ✅</h2>
+      <p>This Swift + JSON starter includes role-based auth, admin management APIs, learner dashboard, and seeded mechanic content.</p>
+      <p class="hint">Seed users: <code>admin@frenchmonkeys.io</code> and <code>student@frenchmonkeys.io</code>.</p>
+    </section>
+
+    <section class="card">
+      <h2>Platform Snapshot</h2>
+      <div id="snapshot">Loading...</div>
+    </section>
+
+    <section class="card">
+      <h2>Core API</h2>
+      <ul>
+        <li><code>POST /api/auth/login</code> (email only for seed access)</li>
+        <li><code>GET /api/dashboard</code> (learner progress + scores + achievements)</li>
+        <li><code>GET /api/courses</code>, <code>/api/tests</code>, <code>/api/announcements</code></li>
+        <li><code>POST /api/admin/courses|tests|announcements|pages|toolbar</code></li>
+      </ul>
+      <p class="hint">All secured routes require <code>Authorization: Bearer &lt;token&gt;</code>.</p>
+    </section>
+
+    <section class="card">
+      <h2>Toolbar (Admin Editable)</h2>
+      <div class="toolbar" id="toolbar"></div>
+    </section>
+  </main>
+
+  <script>
+    fetch('/api/bootstrap')
+      .then(r => r.json())
+      .then(data => {
+        const d = data.defaults;
+        document.getElementById('snapshot').innerHTML = `
+          <p>Courses: <strong>${d.courses.length}</strong></p>
+          <p>Tests: <strong>${d.tests.length}</strong></p>
+          <p>Announcements: <strong>${d.announcements.length}</strong></p>
+          <p>Pages: <strong>${d.pages.length}</strong></p>
+        `;
+
+        const toolbar = document.getElementById('toolbar');
+        toolbar.innerHTML = d.toolbar.map(item => `<span class="pill">${item.label} → ${item.path}</span>`).join('');
+      })
+      .catch(() => {
+        document.getElementById('snapshot').textContent = 'Unable to load bootstrap data.';
+      });
+  </script>
+</body>
+</html>
