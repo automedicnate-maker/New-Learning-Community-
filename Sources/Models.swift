@@ -7,10 +7,12 @@ enum UserRole: String, Codable {
 
 struct User: Codable {
     let id: UUID
+    let username: String
     let email: String
     let name: String
     let role: UserRole
     let token: String
+    let password: String
 }
 
 struct Course: Codable {
@@ -71,13 +73,15 @@ struct Achievement: Codable {
 }
 
 struct LoginRequest: Codable {
-    let email: String
+    let username: String
+    let password: String
 }
 
 struct LoginResponse: Codable {
     let token: String
     let role: UserRole
     let name: String
+    let username: String
 }
 
 struct PlatformSnapshot: Codable {
@@ -94,8 +98,16 @@ struct AdminBootstrapResponse: Codable {
 }
 
 struct LearnerDashboard: Codable {
-    let user: User
+    let user: UserProfile
     let scores: [Score]
     let achievements: [Achievement]
     let availableCourses: [Course]
+}
+
+struct UserProfile: Codable {
+    let id: UUID
+    let username: String
+    let email: String
+    let name: String
+    let role: UserRole
 }

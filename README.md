@@ -21,17 +21,21 @@ swift run
 
 Server starts on `http://localhost:8080`.
 
-## Seed accounts
+## Default credentials
 
-- Admin: `admin@frenchmonkeys.io`
-- Learner: `student@frenchmonkeys.io`
+- **Admin username:** `admin`
+- **Admin password:** `ChangeMeNow!123`
+- Learner username: `learner1`
+- Learner password: `LearnerPass!123`
 
-Get a token:
+> ⚠️ These are development defaults. Change credentials before production use.
+
+Get an admin token:
 
 ```bash
 curl -s -X POST http://localhost:8080/api/auth/login \
   -H 'content-type: application/json' \
-  -d '{"email":"admin@frenchmonkeys.io"}'
+  -d '{"username":"admin","password":"ChangeMeNow!123"}'
 ```
 
 ## Key endpoints

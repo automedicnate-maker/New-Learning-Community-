@@ -31,8 +31,24 @@ final class LearningDataStore {
     }
 
     static func bootstrap() -> LearningDataStore {
-        let admin = User(id: UUID(), email: "admin@frenchmonkeys.io", name: "French Monkeys Admin", role: .admin, token: "admin-token")
-        let learner = User(id: UUID(), email: "student@frenchmonkeys.io", name: "First Learner", role: .learner, token: "learner-token")
+        let admin = User(
+            id: UUID(),
+            username: "admin",
+            email: "admin@frenchmonkeys.io",
+            name: "French Monkeys Admin",
+            role: .admin,
+            token: "admin-token",
+            password: "ChangeMeNow!123"
+        )
+        let learner = User(
+            id: UUID(),
+            username: "learner1",
+            email: "student@frenchmonkeys.io",
+            name: "First Learner",
+            role: .learner,
+            token: "learner-token",
+            password: "LearnerPass!123"
+        )
 
         let safetyCourseID = UUID()
         let basicsCourse = Course(
@@ -86,8 +102,10 @@ final class LearningDataStore {
         )
     }
 
-    func login(email: String) -> User? {
-        users.first { $0.email.caseInsensitiveCompare(email) == .orderedSame }
+    func login(username: String, password: String) -> User? {
+        users.first {
+            $0.username.caseInsensitiveCompare(username) == .orderedSame && $0.password == password
+        }
     }
 
     func user(token: String?) -> User? {
@@ -101,7 +119,7 @@ final class LearningDataStore {
 
     func dashboard(user: User) -> LearnerDashboard {
         LearnerDashboard(
-            user: user,
+            user: UserProfile(id: user.id, username: user.username, email: user.email, name: user.name, role: user.role),
             scores: scores.filter { $0.userID == user.id },
             achievements: achievements.filter { $0.userID == user.id },
             availableCourses: courses.filter(\.isPublished)

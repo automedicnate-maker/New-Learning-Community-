@@ -48,13 +48,13 @@ func handle(_ request: HTTPRequest) -> HTTPResponse {
     case ("GET", "/"):
         return .html(landingHTML)
     case ("GET", "/api/bootstrap"):
-        return .json(AdminBootstrapResponse(message: "Use /api/auth/login to get a token.", defaults: store.snapshot()))
+        return .json(AdminBootstrapResponse(message: "Use /api/auth/login with username and password to get a token.", defaults: store.snapshot()))
     case ("POST", "/api/auth/login"):
         guard let payload = try? JSONDecoder().decode(LoginRequest.self, from: request.body),
-              let user = store.login(email: payload.email) else {
-            return .text("{\"error\":\"invalid email\"}", status: 404)
+              let user = store.login(username: payload.username, password: payload.password) else {
+            return .text("{\"error\":\"invalid credentials\"}", status: 401)
         }
-        return .json(LoginResponse(token: user.token, role: user.role, name: user.name))
+        return .json(LoginResponse(token: user.token, role: user.role, name: user.name, username: user.username))
     case ("GET", "/api/dashboard"), ("GET", "/api/courses"), ("GET", "/api/tests"), ("GET", "/api/announcements"):
         guard let user = store.user(token: bearerToken(from: request.headers)) else {
             return .text("{\"error\":\"unauthorized\"}", status: 401)
