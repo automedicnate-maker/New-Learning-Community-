@@ -1,75 +1,60 @@
-# New Learning Community – French Monkeys Academy Starter
+# WRENCH Learning Platform
 
-Swift starter environment for a mechanic-focused learning platform with:
+WRENCH is a mechanic training platform with admin and learner workflows.
 
-- **Learner login** and dashboard (scores + achievements)
-- **Admin APIs** for adding courses, tests, pages, toolbar links, and announcements
-- **JSON-first API design** for easy app/web/mobile integration
-- **Clean Snap-on inspired UI** (red/black/white) with login, dashboard, and admin content forms
+## What is implemented
 
-## Stack
+- Username/password auth (`login` + `signup`)
+- Default owner admin account
+- Admin invite code generation for creating additional admin accounts
+- Role-based admin center for creating:
+  - tools
+  - courses (with sections + chapters)
+  - tests
+  - announcements
+- Learner course access rules based on:
+  - declared level (beginner/intermediate/advanced)
+  - prerequisite passed tests
+- Test submission endpoint that records pass/fail attempts
 
-- Swift 6
-- Custom lightweight Swift HTTP server (no external dependencies)
-- In-memory data store (seeded defaults for fast prototyping)
+## Default owner admin
 
-## Run locally
+- Username: `wrenchadmin`
+- Password: `ChangeMeNow!123`
+
+> Change this immediately in a real deployment.
+
+## Run
 
 ```bash
 swift run
 ```
 
-Server starts on `http://localhost:8080`.
+App runs at `http://localhost:8080`.
 
-## Default credentials
-
-- **Admin username:** `admin`
-- **Admin password:** `ChangeMeNow!123`
-- Learner username: `learner1`
-- Learner password: `LearnerPass!123`
-
-> ⚠️ These are development defaults. Change credentials before production use.
-
-Get an admin token:
-
-```bash
-curl -s -X POST http://localhost:8080/api/auth/login \
-  -H 'content-type: application/json' \
-  -d '{"username":"admin","password":"ChangeMeNow!123"}'
-```
-
-## Web UI (user-friendly starter)
-
-The homepage now provides:
-
-- A cleaner dashboard with platform counts and live data tables
-- Built-in login form (username/password)
-- Admin tools to add courses, announcements, pages, and toolbar links directly from the UI
-- Role-aware session display so admins can immediately start managing content
-
-## Key endpoints
+## Core API
 
 ### Public
+- `GET /api/bootstrap`
+- `POST /api/auth/login`
+- `POST /api/auth/signup`
 
-- `GET /` → landing/status page
-- `GET /api/bootstrap` → default seeded content summary
-- `POST /api/auth/login` → token + role
-
-### Auth required (Bearer token)
-
+### Authenticated user
 - `GET /api/dashboard`
 - `GET /api/courses`
 - `GET /api/tests`
+- `GET /api/tools`
 - `GET /api/announcements`
+- `POST /api/tests/submit`
 
-### Admin only (Bearer admin token)
-
+### Admin only
+- `GET /api/admin/overview`
+- `POST /api/admin/invite-codes`
+- `POST /api/admin/tools`
 - `POST /api/admin/courses`
 - `POST /api/admin/tests`
 - `POST /api/admin/announcements`
-- `POST /api/admin/pages`
-- `POST /api/admin/toolbar`
 
 ## Notes
 
-This is an MVP environment scaffold intended for your next phase (persistent database, quiz attempt tracking, course progression logic, richer auth, and future achievement systems).
+Data is currently in-memory for rapid iteration. Persisting to a real database is the next production step.

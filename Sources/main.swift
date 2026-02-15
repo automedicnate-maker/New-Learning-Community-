@@ -20,8 +20,8 @@ struct HTTPResponse {
         return HTTPResponse(status: status, contentType: "application/json", body: (try? encoder.encode(value)) ?? Data("{}".utf8))
     }
 
-    static func text(_ value: String, status: Int = 200) -> HTTPResponse {
-        HTTPResponse(status: status, contentType: "text/plain; charset=utf-8", body: Data(value.utf8))
+    static func error(_ message: String, status: Int) -> HTTPResponse {
+        HTTPResponse(status: status, contentType: "application/json", body: Data("{\"error\":\"\(message)\"}".utf8))
     }
 
     static func html(_ value: String, status: Int = 200) -> HTTPResponse {
@@ -35,7 +35,7 @@ let landingHTML: String = {
        let value = try? String(contentsOf: resourceURL, encoding: .utf8) {
         return value
     }
-    return "<h1>French Monkeys Academy</h1>"
+    return "<h1>WRENCH</h1>"
 }()
 
 func bearerToken(from headers: [String: String]) -> String? {
@@ -43,46 +43,117 @@ func bearerToken(from headers: [String: String]) -> String? {
     return String(auth.dropFirst(7))
 }
 
+func authenticatedUser(from request: HTTPRequest) -> User? {
+    store.user(token: bearerToken(from: request.headers))
+}
+
+func requireAdmin(_ request: HTTPRequest) -> User? {
+    guard let user = authenticatedUser(from: request), user.role == .admin else { return nil }
+    return user
+}
+
+func decode<T: Decodable>(_ type: T.Type, from data: Data) -> T? {
+    let decoder = JSONDecoder()
+    decoder.dateDecodingStrategy = .iso8601
+    return try? decoder.decode(T.self, from: data)
+}
+
 func handle(_ request: HTTPRequest) -> HTTPResponse {
     switch (request.method, request.path) {
     case ("GET", "/"):
         return .html(landingHTML)
+
     case ("GET", "/api/bootstrap"):
-        return .json(AdminBootstrapResponse(message: "Use /api/auth/login with username and password to get a token.", defaults: store.snapshot()))
+        return .json(PublicBootstrapResponse(platformName: "WRENCH", hasDefaultAdmin: store.hasDefaultAdmin()))
+
     case ("POST", "/api/auth/login"):
-        guard let payload = try? JSONDecoder().decode(LoginRequest.self, from: request.body),
+        guard let payload = decode(LoginRequest.self, from: request.body),
               let user = store.login(username: payload.username, password: payload.password) else {
-            return .text("{\"error\":\"invalid credentials\"}", status: 401)
+            return .error("invalid credentials", status: 401)
         }
-        return .json(LoginResponse(token: user.token, role: user.role, name: user.name, username: user.username))
-    case ("GET", "/api/dashboard"), ("GET", "/api/courses"), ("GET", "/api/tests"), ("GET", "/api/announcements"):
-        guard let user = store.user(token: bearerToken(from: request.headers)) else {
-            return .text("{\"error\":\"unauthorized\"}", status: 401)
+        return .json(LoginResponse(token: user.token, role: user.role, name: user.name, username: user.username, level: user.level))
+
+    case ("POST", "/api/auth/signup"):
+        guard let payload = decode(SignupRequest.self, from: request.body) else {
+            return .error("invalid payload", status: 400)
         }
-        if request.path == "/api/dashboard" { return .json(store.dashboard(user: user)) }
-        if request.path == "/api/courses" { return .json(store.listCourses(for: user)) }
-        if request.path == "/api/tests" { return .json(store.listTests()) }
-        return .json(store.listAnnouncements())
-    case ("POST", "/api/admin/courses"), ("POST", "/api/admin/tests"), ("POST", "/api/admin/announcements"), ("POST", "/api/admin/pages"), ("POST", "/api/admin/toolbar"):
-        guard let user = store.user(token: bearerToken(from: request.headers)), user.role == .admin else {
-            return .text("{\"error\":\"forbidden\"}", status: 403)
+        let result = store.signup(payload)
+        switch result {
+        case .success(let user):
+            return .json(LoginResponse(token: user.token, role: user.role, name: user.name, username: user.username, level: user.level), status: 201)
+        case .failure(let error):
+            return .error(error.text, status: 400)
         }
-        switch request.path {
-        case "/api/admin/courses": if let v = try? JSONDecoder().decode(Course.self, from: request.body) { store.addCourse(v) }
-        case "/api/admin/tests": if let v = try? JSONDecoder().decode(Test.self, from: request.body) { store.addTest(v) }
-        case "/api/admin/announcements": if let v = try? JSONDecoder().decode(Announcement.self, from: request.body) { store.addAnnouncement(v) }
-        case "/api/admin/pages": if let v = try? JSONDecoder().decode(Page.self, from: request.body) { store.addPage(v) }
-        default: if let v = try? JSONDecoder().decode(ToolbarLink.self, from: request.body) { store.addToolbar(v) }
+
+    case ("GET", "/api/dashboard"):
+        guard let user = authenticatedUser(from: request) else { return .error("unauthorized", status: 401) }
+        return .json(store.dashboard(for: user))
+
+    case ("GET", "/api/courses"):
+        guard let user = authenticatedUser(from: request) else { return .error("unauthorized", status: 401) }
+        return .json(store.courseAccessList(for: user))
+
+    case ("GET", "/api/tests"):
+        guard authenticatedUser(from: request) != nil else { return .error("unauthorized", status: 401) }
+        return .json(store.allTests())
+
+    case ("GET", "/api/tools"):
+        guard authenticatedUser(from: request) != nil else { return .error("unauthorized", status: 401) }
+        return .json(store.allTools())
+
+    case ("GET", "/api/announcements"):
+        guard authenticatedUser(from: request) != nil else { return .error("unauthorized", status: 401) }
+        return .json(store.allAnnouncements())
+
+    case ("POST", "/api/tests/submit"):
+        guard let user = authenticatedUser(from: request) else { return .error("unauthorized", status: 401) }
+        guard let payload = decode(SubmitTestRequest.self, from: request.body) else { return .error("invalid payload", status: 400) }
+        switch store.submitTest(user: user, payload: payload) {
+        case .success(let attempt): return .json(attempt, status: 201)
+        case .failure(let err): return .error(err.text, status: 400)
         }
-        return .text("created", status: 201)
+
+    case ("GET", "/api/admin/overview"):
+        guard requireAdmin(request) != nil else { return .error("forbidden", status: 403) }
+        return .json(store.adminOverview())
+
+    case ("POST", "/api/admin/invite-codes"):
+        guard let admin = requireAdmin(request) else { return .error("forbidden", status: 403) }
+        guard let payload = decode(CreateInviteCodeRequest.self, from: request.body) else { return .error("invalid payload", status: 400) }
+        return .json(store.createInviteCode(uses: payload.uses, adminID: admin.id), status: 201)
+
+    case ("POST", "/api/admin/tools"):
+        guard requireAdmin(request) != nil else { return .error("forbidden", status: 403) }
+        guard let payload = decode(CreateToolRequest.self, from: request.body) else { return .error("invalid payload", status: 400) }
+        return .json(store.addTool(payload), status: 201)
+
+    case ("POST", "/api/admin/courses"):
+        guard requireAdmin(request) != nil else { return .error("forbidden", status: 403) }
+        guard let payload = decode(CreateCourseRequest.self, from: request.body) else { return .error("invalid payload", status: 400) }
+        return .json(store.addCourse(payload), status: 201)
+
+    case ("POST", "/api/admin/tests"):
+        guard requireAdmin(request) != nil else { return .error("forbidden", status: 403) }
+        guard let payload = decode(CreateTestRequest.self, from: request.body) else { return .error("invalid payload", status: 400) }
+        switch store.addTest(payload) {
+        case .success(let test): return .json(test, status: 201)
+        case .failure(let err): return .error(err.text, status: 400)
+        }
+
+    case ("POST", "/api/admin/announcements"):
+        guard requireAdmin(request) != nil else { return .error("forbidden", status: 403) }
+        guard let payload = decode(CreateAnnouncementRequest.self, from: request.body) else { return .error("invalid payload", status: 400) }
+        return .json(store.addAnnouncement(payload), status: 201)
+
     default:
-        return .text("Not Found", status: 404)
+        return .error("not found", status: 404)
     }
 }
 
 func parseRequest(_ data: Data) -> HTTPRequest? {
     guard let text = String(data: data, encoding: .utf8),
           let splitRange = text.range(of: "\r\n\r\n") else { return nil }
+
     let headerText = String(text[..<splitRange.lowerBound])
     let bodyText = String(text[splitRange.upperBound...])
     let headerLines = headerText.split(separator: "\r\n", omittingEmptySubsequences: false)
@@ -105,6 +176,7 @@ func statusText(_ code: Int) -> String {
     switch code {
     case 200: return "OK"
     case 201: return "Created"
+    case 400: return "Bad Request"
     case 401: return "Unauthorized"
     case 403: return "Forbidden"
     case 404: return "Not Found"
@@ -128,7 +200,7 @@ withUnsafePointer(to: &addr) { ptr in
 }
 
 listen(socketFD, 128)
-print("French Monkeys Academy running at http://0.0.0.0:8080")
+print("WRENCH running at http://0.0.0.0:8080")
 
 while true {
     var clientAddr = sockaddr()
@@ -136,7 +208,7 @@ while true {
     let client = accept(socketFD, &clientAddr, &len)
     if client < 0 { continue }
 
-    var buffer = [UInt8](repeating: 0, count: 65536)
+    var buffer = [UInt8](repeating: 0, count: 131072)
     let readCount = read(client, &buffer, buffer.count)
     if readCount > 0 {
         let data = Data(buffer.prefix(Int(readCount)))
