@@ -6,108 +6,368 @@
   <title>French Monkeys Academy</title>
   <style>
     :root {
-      --snapon-red: #D71920;
+      --snapon-red: #d71920;
+      --snapon-red-dark: #b91319;
       --snapon-black: #111111;
-      --snapon-white: #ffffff;
-      --card: #1c1c1c;
+      --panel: #1a1a1a;
+      --panel-soft: #242424;
+      --border: #303030;
+      --text: #f6f6f6;
+      --muted: #b8b8b8;
+      --ok: #32c766;
     }
+    * { box-sizing: border-box; }
     body {
       margin: 0;
-      font-family: Inter, Arial, sans-serif;
-      background: var(--snapon-black);
-      color: var(--snapon-white);
+      font-family: Inter, Segoe UI, Arial, sans-serif;
+      background: linear-gradient(160deg, #0e0e0e, #171717);
+      color: var(--text);
     }
-    header {
-      background: var(--snapon-red);
-      padding: 1rem 1.5rem;
+    .layout { display: grid; grid-template-columns: 260px 1fr; min-height: 100vh; }
+    .sidebar {
+      border-right: 1px solid var(--border);
+      background: #121212;
+      padding: 1.2rem;
       display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
-    main {
-      padding: 1.5rem;
-      display: grid;
+      flex-direction: column;
       gap: 1rem;
-      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
     }
+    .brand { font-size: 1.1rem; font-weight: 800; letter-spacing: .2px; }
+    .badge { background: var(--snapon-red); border-radius: 8px; padding: .15rem .45rem; font-size: .78rem; }
+    .muted { color: var(--muted); }
+    .nav-btn {
+      width: 100%; border: 1px solid var(--border); background: var(--panel);
+      color: var(--text); border-radius: 10px; padding: .65rem .8rem; text-align: left; cursor: pointer;
+    }
+    .nav-btn.active, .nav-btn:hover { border-color: var(--snapon-red); }
+
+    .content { padding: 1.2rem 1.4rem; }
+    .topbar {
+      border: 1px solid var(--border); background: var(--panel); border-radius: 14px;
+      padding: .9rem 1rem; display: flex; justify-content: space-between; align-items: center;
+      margin-bottom: 1rem; gap: .7rem; flex-wrap: wrap;
+    }
+    .chip { background: #202020; border: 1px solid var(--border); border-radius: 999px; padding: .25rem .7rem; font-size: .82rem; }
+    .chip.ok { color: var(--ok); border-color: #2b7f49; }
+
+    .grid { display: grid; grid-template-columns: repeat(12, 1fr); gap: 1rem; }
     .card {
-      background: var(--card);
-      border: 1px solid #2d2d2d;
-      border-radius: 12px;
-      padding: 1rem;
+      background: var(--panel); border: 1px solid var(--border);
+      border-radius: 14px; padding: 1rem;
     }
-    code {
-      color: #ff8a8e;
-      word-break: break-all;
+    .kpi { grid-column: span 3; }
+    .main-panel { grid-column: span 8; }
+    .side-panel { grid-column: span 4; }
+
+    h1,h2,h3 { margin: 0 0 .5rem; }
+    p { margin: .3rem 0; }
+    .small { font-size: .9rem; }
+
+    form { display: grid; gap: .55rem; }
+    input, textarea, select {
+      width: 100%; border-radius: 9px; border: 1px solid #3a3a3a; background: var(--panel-soft);
+      color: var(--text); padding: .6rem .7rem;
     }
-    .toolbar {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 0.5rem;
-      margin-top: 0.5rem;
+    textarea { min-height: 84px; resize: vertical; }
+    .row { display: grid; grid-template-columns: 1fr 1fr; gap: .6rem; }
+    button.primary {
+      border: 0; background: var(--snapon-red); color: white; font-weight: 700;
+      border-radius: 9px; padding: .62rem .8rem; cursor: pointer;
     }
-    .pill {
-      background: #2d2d2d;
-      border-radius: 999px;
-      padding: 0.3rem 0.7rem;
-      font-size: 0.85rem;
+    button.primary:hover { background: var(--snapon-red-dark); }
+
+    table { width: 100%; border-collapse: collapse; margin-top: .5rem; font-size: .92rem; }
+    th, td { border-bottom: 1px solid #2f2f2f; text-align: left; padding: .45rem .3rem; }
+    th { color: #ddd; font-weight: 600; }
+
+    .hidden { display: none; }
+    .status { min-height: 1.2rem; font-size: .9rem; }
+    .ok { color: var(--ok); }
+    .err { color: #ff7d7d; }
+
+    @media (max-width: 980px) {
+      .layout { grid-template-columns: 1fr; }
+      .sidebar { border-right: 0; border-bottom: 1px solid var(--border); }
+      .kpi, .main-panel, .side-panel { grid-column: span 12; }
     }
-    .hint { color: #ccc; font-size: 0.9rem; }
   </style>
 </head>
 <body>
-  <header>
-    <strong>French Monkeys Academy</strong>
-    <span>Mechanic Training Platform Starter</span>
-  </header>
+  <div class="layout">
+    <aside class="sidebar">
+      <div>
+        <div class="brand">French Monkeys Academy <span class="badge">BETA</span></div>
+        <p class="muted small">Mechanic training platform starter (Snap-on inspired).</p>
+      </div>
+      <div>
+        <button class="nav-btn active" data-view="dashboard">Dashboard</button>
+        <button class="nav-btn" data-view="admin">Admin Tools</button>
+      </div>
+      <div class="card small">
+        <strong>Quick Start Login</strong>
+        <p class="muted">Admin: <code>admin</code> / <code>ChangeMeNow!123</code></p>
+      </div>
+    </aside>
 
-  <main>
-    <section class="card">
-      <h2>Environment Ready ✅</h2>
-      <p>This Swift + JSON starter includes role-based auth, admin management APIs, learner dashboard, and seeded mechanic content.</p>
-      <p class="hint">Default admin: <code>admin</code> / <code>ChangeMeNow!123</code>. Learner: <code>learner1</code> / <code>LearnerPass!123</code>.</p>
-    </section>
+    <main class="content">
+      <div class="topbar">
+        <div>
+          <h2>Learning Platform Control Center</h2>
+          <p class="muted small">Clean interface to log in, review content, and add courses/tests/pages/toolbar/announcements.</p>
+        </div>
+        <div style="display:flex;gap:.5rem;align-items:center;flex-wrap:wrap">
+          <span class="chip" id="sessionUser">Not logged in</span>
+          <span class="chip ok" id="sessionRole">Role: -</span>
+        </div>
+      </div>
 
-    <section class="card">
-      <h2>Platform Snapshot</h2>
-      <div id="snapshot">Loading...</div>
-    </section>
+      <section id="dashboardView">
+        <div class="grid">
+          <article class="card kpi"><h3 id="kpiCourses">0</h3><p class="muted">Courses</p></article>
+          <article class="card kpi"><h3 id="kpiTests">0</h3><p class="muted">Tests</p></article>
+          <article class="card kpi"><h3 id="kpiAnnouncements">0</h3><p class="muted">Announcements</p></article>
+          <article class="card kpi"><h3 id="kpiPages">0</h3><p class="muted">Pages</p></article>
 
-    <section class="card">
-      <h2>Core API</h2>
-      <ul>
-        <li><code>POST /api/auth/login</code> (username + password)</li>
-        <li><code>GET /api/dashboard</code> (learner progress + scores + achievements)</li>
-        <li><code>GET /api/courses</code>, <code>/api/tests</code>, <code>/api/announcements</code></li>
-        <li><code>POST /api/admin/courses|tests|announcements|pages|toolbar</code></li>
-      </ul>
-      <p class="hint">All secured routes require <code>Authorization: Bearer &lt;token&gt;</code>.</p>
-    </section>
+          <article class="card main-panel">
+            <h3>Login</h3>
+            <form id="loginForm">
+              <div class="row">
+                <input id="username" placeholder="Username" required value="admin" />
+                <input id="password" placeholder="Password" type="password" required value="ChangeMeNow!123" />
+              </div>
+              <button class="primary" type="submit">Sign In</button>
+              <div class="status" id="loginStatus"></div>
+            </form>
 
-    <section class="card">
-      <h2>Toolbar (Admin Editable)</h2>
-      <div class="toolbar" id="toolbar"></div>
-    </section>
-  </main>
+            <h3 style="margin-top:1rem">Courses</h3>
+            <table id="coursesTable"><thead><tr><th>Title</th><th>Category</th><th>Status</th></tr></thead><tbody></tbody></table>
+          </article>
+
+          <article class="card side-panel">
+            <h3>Announcements</h3>
+            <div id="announcementsList" class="small muted">Loading...</div>
+            <h3 style="margin-top:1rem">Toolbar</h3>
+            <div id="toolbarList" class="small muted"></div>
+          </article>
+        </div>
+      </section>
+
+      <section id="adminView" class="hidden">
+        <div class="grid">
+          <article class="card main-panel">
+            <h3>Add Course</h3>
+            <form id="courseForm">
+              <input id="courseTitle" placeholder="Course title" required />
+              <div class="row">
+                <input id="courseCategory" placeholder="Category (Basics, Diagnostics...)" required />
+                <select id="coursePublished"><option value="true">Published</option><option value="false">Draft</option></select>
+              </div>
+              <textarea id="courseDescription" placeholder="Course description" required></textarea>
+              <input id="courseModules" placeholder="Modules (comma-separated)" required />
+              <button class="primary" type="submit">Create Course</button>
+            </form>
+
+            <h3 style="margin-top:1rem">Add Announcement</h3>
+            <form id="announcementForm">
+              <input id="announcementTitle" placeholder="Announcement title" required />
+              <textarea id="announcementMessage" placeholder="Announcement message" required></textarea>
+              <button class="primary" type="submit">Create Announcement</button>
+            </form>
+          </article>
+
+          <article class="card side-panel">
+            <h3>Quick Add Page</h3>
+            <form id="pageForm">
+              <input id="pageTitle" placeholder="Page title" required />
+              <input id="pageSlug" placeholder="Page slug (e.g. safety-basics)" required />
+              <textarea id="pageMarkdown" placeholder="Markdown content" required></textarea>
+              <button class="primary" type="submit">Create Page</button>
+            </form>
+
+            <h3 style="margin-top:1rem">Quick Add Toolbar Link</h3>
+            <form id="toolbarForm">
+              <input id="toolbarLabel" placeholder="Label" required />
+              <input id="toolbarPath" placeholder="Path (e.g. /api/courses)" required />
+              <button class="primary" type="submit">Add Toolbar Link</button>
+            </form>
+            <div class="status" id="adminStatus"></div>
+          </article>
+        </div>
+      </section>
+    </main>
+  </div>
 
   <script>
-    fetch('/api/bootstrap')
-      .then(r => r.json())
-      .then(data => {
-        const d = data.defaults;
-        document.getElementById('snapshot').innerHTML = `
-          <p>Courses: <strong>${d.courses.length}</strong></p>
-          <p>Tests: <strong>${d.tests.length}</strong></p>
-          <p>Announcements: <strong>${d.announcements.length}</strong></p>
-          <p>Pages: <strong>${d.pages.length}</strong></p>
-        `;
+    const state = { token: '', role: '', username: '' };
 
-        const toolbar = document.getElementById('toolbar');
-        toolbar.innerHTML = d.toolbar.map(item => `<span class="pill">${item.label} → ${item.path}</span>`).join('');
-      })
-      .catch(() => {
-        document.getElementById('snapshot').textContent = 'Unable to load bootstrap data.';
+    const el = (id) => document.getElementById(id);
+    const headers = () => state.token ? { 'Authorization': `Bearer ${state.token}` } : {};
+
+    async function fetchJSON(url, options = {}) {
+      const res = await fetch(url, options);
+      const text = await res.text();
+      let body = {};
+      try { body = JSON.parse(text); } catch { body = { raw: text }; }
+      if (!res.ok) throw new Error(body.error || `Request failed (${res.status})`);
+      return body;
+    }
+
+    function updateSessionUI() {
+      el('sessionUser').textContent = state.username ? `User: ${state.username}` : 'Not logged in';
+      el('sessionRole').textContent = `Role: ${state.role || '-'}`;
+    }
+
+    function renderCourses(courses) {
+      const tbody = el('coursesTable').querySelector('tbody');
+      tbody.innerHTML = courses.map(c => `<tr><td>${c.title}</td><td>${c.category}</td><td>${c.isPublished ? 'Published' : 'Draft'}</td></tr>`).join('') || '<tr><td colspan="3" class="muted">No courses yet</td></tr>';
+    }
+
+    function renderAnnouncements(items) {
+      el('announcementsList').innerHTML = items.map(a => `<p><strong>${a.title}</strong><br/>${a.message}</p>`).join('') || '<p class="muted">No announcements yet.</p>';
+    }
+
+    function renderToolbar(items) {
+      el('toolbarList').innerHTML = items.map(t => `<p><code>${t.label}</code> → ${t.path}</p>`).join('') || '<p class="muted">No toolbar links.</p>';
+    }
+
+    async function loadPublicSnapshot() {
+      const data = await fetchJSON('/api/bootstrap');
+      const d = data.defaults;
+      el('kpiCourses').textContent = d.courses.length;
+      el('kpiTests').textContent = d.tests.length;
+      el('kpiAnnouncements').textContent = d.announcements.length;
+      el('kpiPages').textContent = d.pages.length;
+      renderCourses(d.courses);
+      renderAnnouncements(d.announcements);
+      renderToolbar(d.toolbar);
+    }
+
+    async function loadAuthedData() {
+      if (!state.token) return;
+      const [courses, announcements] = await Promise.all([
+        fetchJSON('/api/courses', { headers: headers() }),
+        fetchJSON('/api/announcements', { headers: headers() })
+      ]);
+      renderCourses(courses);
+      renderAnnouncements(announcements);
+    }
+
+    async function adminPost(path, payload) {
+      await fetchJSON(path, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...headers() },
+        body: JSON.stringify(payload)
       });
+      el('adminStatus').textContent = 'Saved successfully.';
+      el('adminStatus').className = 'status ok';
+      await loadPublicSnapshot();
+      await loadAuthedData();
+    }
+
+    el('loginForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const username = el('username').value.trim();
+      const password = el('password').value;
+      const status = el('loginStatus');
+      try {
+        const data = await fetchJSON('/api/auth/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username, password })
+        });
+        state.token = data.token;
+        state.role = data.role;
+        state.username = data.username;
+        updateSessionUI();
+        status.textContent = 'Login successful.';
+        status.className = 'status ok';
+        await loadAuthedData();
+      } catch (err) {
+        status.textContent = err.message;
+        status.className = 'status err';
+      }
+    });
+
+    el('courseForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      try {
+        await adminPost('/api/admin/courses', {
+          id: crypto.randomUUID(),
+          title: el('courseTitle').value,
+          category: el('courseCategory').value,
+          description: el('courseDescription').value,
+          modules: el('courseModules').value.split(',').map(v => v.trim()).filter(Boolean),
+          isPublished: el('coursePublished').value === 'true'
+        });
+        e.target.reset();
+      } catch (err) {
+        el('adminStatus').textContent = err.message;
+        el('adminStatus').className = 'status err';
+      }
+    });
+
+    el('announcementForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      try {
+        await adminPost('/api/admin/announcements', {
+          id: crypto.randomUUID(),
+          title: el('announcementTitle').value,
+          message: el('announcementMessage').value,
+          createdAt: new Date().toISOString()
+        });
+        e.target.reset();
+      } catch (err) {
+        el('adminStatus').textContent = err.message;
+        el('adminStatus').className = 'status err';
+      }
+    });
+
+    el('pageForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      try {
+        await adminPost('/api/admin/pages', {
+          id: crypto.randomUUID(),
+          title: el('pageTitle').value,
+          slug: el('pageSlug').value,
+          contentMarkdown: el('pageMarkdown').value
+        });
+        e.target.reset();
+      } catch (err) {
+        el('adminStatus').textContent = err.message;
+        el('adminStatus').className = 'status err';
+      }
+    });
+
+    el('toolbarForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      try {
+        await adminPost('/api/admin/toolbar', {
+          id: crypto.randomUUID(),
+          label: el('toolbarLabel').value,
+          path: el('toolbarPath').value
+        });
+        e.target.reset();
+      } catch (err) {
+        el('adminStatus').textContent = err.message;
+        el('adminStatus').className = 'status err';
+      }
+    });
+
+    document.querySelectorAll('.nav-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        const dashboard = el('dashboardView');
+        const admin = el('adminView');
+        const isAdminView = btn.dataset.view === 'admin';
+        dashboard.classList.toggle('hidden', isAdminView);
+        admin.classList.toggle('hidden', !isAdminView);
+      });
+    });
+
+    loadPublicSnapshot().catch(() => {
+      el('announcementsList').textContent = 'Unable to load platform data.';
+    });
   </script>
 </body>
 </html>

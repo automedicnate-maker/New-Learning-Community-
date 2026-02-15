@@ -5,7 +5,7 @@ Swift starter environment for a mechanic-focused learning platform with:
 - **Learner login** and dashboard (scores + achievements)
 - **Admin APIs** for adding courses, tests, pages, toolbar links, and announcements
 - **JSON-first API design** for easy app/web/mobile integration
-- **Snap-on inspired brand colors** (red/black/white) on the landing page
+- **Clean Snap-on inspired UI** (red/black/white) with login, dashboard, and admin content forms
 
 ## Stack
 
@@ -37,6 +37,15 @@ curl -s -X POST http://localhost:8080/api/auth/login \
   -H 'content-type: application/json' \
   -d '{"username":"admin","password":"ChangeMeNow!123"}'
 ```
+
+## Web UI (user-friendly starter)
+
+The homepage now provides:
+
+- A cleaner dashboard with platform counts and live data tables
+- Built-in login form (username/password)
+- Admin tools to add courses, announcements, pages, and toolbar links directly from the UI
+- Role-aware session display so admins can immediately start managing content
 
 ## Key endpoints
 
