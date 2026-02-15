@@ -1,0 +1,382 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>WRENCH Platform</title>
+  <style>
+    :root {
+      --red: #d71920;
+      --black: #111111;
+      --panel: #1b1b1b;
+      --panel-2: #252525;
+      --line: #343434;
+      --text: #f4f4f4;
+      --muted: #b8b8b8;
+      --ok: #35d06f;
+    }
+    * { box-sizing: border-box; }
+    body { margin:0; font-family: Inter, Arial, sans-serif; background:#0f0f0f; color:var(--text); }
+    .app { display:grid; grid-template-columns: 260px 1fr; min-height:100vh; }
+    .sidebar { background:#141414; border-right:1px solid var(--line); padding:1rem; }
+    .brand { font-size:1.2rem; font-weight:800; color:white; margin-bottom:.3rem; }
+    .sub { color:var(--muted); font-size:.9rem; }
+    .nav { margin-top:1rem; display:grid; gap:.5rem; }
+    .nav button { border:1px solid var(--line); background:var(--panel); color:var(--text); border-radius:10px; padding:.6rem; text-align:left; cursor:pointer; }
+    .nav button.active, .nav button:hover { border-color:var(--red); }
+    .content { padding:1rem 1.2rem; }
+    .top { border:1px solid var(--line); background:var(--panel); border-radius:14px; padding:.9rem 1rem; display:flex; justify-content:space-between; gap:.6rem; align-items:center; flex-wrap:wrap; }
+    .chips { display:flex; gap:.4rem; flex-wrap:wrap; }
+    .chip { border:1px solid var(--line); border-radius:999px; padding:.3rem .7rem; background:#202020; font-size:.82rem; }
+    .grid { margin-top:1rem; display:grid; grid-template-columns:repeat(12,1fr); gap:1rem; }
+    .card { background:var(--panel); border:1px solid var(--line); border-radius:14px; padding:1rem; }
+    .kpi { grid-column:span 3; }
+    .main { grid-column:span 8; }
+    .side { grid-column:span 4; }
+    .full { grid-column:span 12; }
+    h2,h3 { margin:.1rem 0 .7rem; }
+    .muted { color:var(--muted); }
+    input, textarea, select { width:100%; padding:.6rem .7rem; border:1px solid #3d3d3d; background:var(--panel-2); color:var(--text); border-radius:9px; }
+    textarea { min-height:85px; }
+    form { display:grid; gap:.55rem; }
+    .row2 { display:grid; grid-template-columns:1fr 1fr; gap:.55rem; }
+    button.primary { border:0; background:var(--red); color:white; border-radius:9px; padding:.6rem .8rem; font-weight:700; cursor:pointer; }
+    button.primary:hover { filter:brightness(.95); }
+    .status { min-height:1.2rem; font-size:.9rem; }
+    .ok { color:var(--ok); }
+    .err { color:#ff7c7c; }
+    table { width:100%; border-collapse:collapse; }
+    th, td { text-align:left; border-bottom:1px solid #2f2f2f; padding:.45rem .2rem; font-size:.92rem; }
+    .hidden { display:none; }
+    @media (max-width:980px){ .app{grid-template-columns:1fr;} .kpi,.main,.side,.full{grid-column:span 12;} }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <aside class="sidebar">
+      <div class="brand">WRENCH</div>
+      <div class="sub">Online mechanic learning platform</div>
+      <div class="nav">
+        <button class="active" data-view="dashboard">Dashboard</button>
+        <button data-view="auth">Sign Up / Login</button>
+        <button data-view="admin">Admin Center</button>
+      </div>
+    </aside>
+
+    <main class="content">
+      <div class="top">
+        <div>
+          <h2>Platform Workspace</h2>
+          <div class="muted">Courses, tests, sections, chapters, tools, access rules, and admin invite codes.</div>
+        </div>
+        <div class="chips">
+          <span class="chip" id="sessionUser">Guest</span>
+          <span class="chip" id="sessionRole">Role: none</span>
+          <span class="chip" id="sessionLevel">Level: -</span>
+        </div>
+      </div>
+
+      <section id="dashboardView">
+        <div class="grid">
+          <article class="card kpi"><h3 id="kCourses">0</h3><div class="muted">Courses</div></article>
+          <article class="card kpi"><h3 id="kTests">0</h3><div class="muted">Tests</div></article>
+          <article class="card kpi"><h3 id="kTools">0</h3><div class="muted">Tools</div></article>
+          <article class="card kpi"><h3 id="kAnnouncements">0</h3><div class="muted">Announcements</div></article>
+
+          <article class="card main">
+            <h3>My Course Access</h3>
+            <table><thead><tr><th>Course</th><th>Level</th><th>Access</th><th>Rule</th></tr></thead><tbody id="courseAccessRows"></tbody></table>
+          </article>
+
+          <article class="card side">
+            <h3>Announcements</h3>
+            <div id="announcementList" class="muted">No announcements.</div>
+          </article>
+        </div>
+      </section>
+
+      <section id="authView" class="hidden">
+        <div class="grid">
+          <article class="card main">
+            <h3>Login</h3>
+            <form id="loginForm">
+              <div class="row2">
+                <input id="loginUsername" value="wrenchadmin" placeholder="Username" required />
+                <input id="loginPassword" value="ChangeMeNow!123" placeholder="Password" type="password" required />
+              </div>
+              <button class="primary" type="submit">Login</button>
+              <div id="loginStatus" class="status"></div>
+            </form>
+          </article>
+
+          <article class="card side">
+            <h3>Sign Up</h3>
+            <form id="signupForm">
+              <input id="suName" placeholder="Full name" required />
+              <input id="suUsername" placeholder="Username" required />
+              <input id="suEmail" placeholder="Email" required />
+              <input id="suPassword" placeholder="Password" type="password" required />
+              <div class="row2">
+                <select id="suLevel"><option value="1">Beginner</option><option value="2">Intermediate</option><option value="3">Advanced</option></select>
+                <select id="suRole"><option value="learner">Learner</option><option value="admin">Admin</option></select>
+              </div>
+              <input id="suCode" placeholder="Admin invite code (only for admin role)" />
+              <button class="primary" type="submit">Create Account</button>
+              <div id="signupStatus" class="status"></div>
+            </form>
+          </article>
+        </div>
+      </section>
+
+      <section id="adminView" class="hidden">
+        <div class="grid">
+          <article class="card full">
+            <h3>Admin Invite Code Generator</h3>
+            <form id="inviteForm" class="row2" style="max-width:500px;">
+              <input id="inviteUses" type="number" min="1" value="1" />
+              <button class="primary" type="submit">Generate Code</button>
+            </form>
+            <div id="inviteStatus" class="status"></div>
+          </article>
+
+          <article class="card main">
+            <h3>Create Tool</h3>
+            <form id="toolForm">
+              <input id="toolName" placeholder="Tool name" required />
+              <input id="toolLink" placeholder="Tool link" required />
+              <textarea id="toolDesc" placeholder="Tool description" required></textarea>
+              <button class="primary" type="submit">Save Tool</button>
+            </form>
+
+            <h3 style="margin-top:1rem;">Create Course (with sections & chapters)</h3>
+            <form id="courseForm">
+              <input id="courseTitle" placeholder="Course title" required />
+              <div class="row2">
+                <input id="courseCategory" placeholder="Category" required />
+                <select id="courseLevel"><option value="1">Beginner</option><option value="2">Intermediate</option><option value="3">Advanced</option></select>
+              </div>
+              <textarea id="courseDesc" placeholder="Course description" required></textarea>
+              <input id="courseSectionTitle" placeholder="Section title" required />
+              <input id="courseChapterTitle" placeholder="Chapter title" required />
+              <textarea id="courseChapterContent" placeholder="Chapter content" required></textarea>
+              <input id="coursePrereqTests" placeholder="Required test IDs (comma-separated, optional)" />
+              <select id="coursePublished"><option value="true">Published</option><option value="false">Draft</option></select>
+              <button class="primary" type="submit">Save Course</button>
+            </form>
+          </article>
+
+          <article class="card side">
+            <h3>Create Test</h3>
+            <form id="testForm">
+              <input id="testCourseId" placeholder="Course ID" required />
+              <input id="testTitle" placeholder="Test title" required />
+              <input id="testPassing" type="number" min="1" max="100" value="70" required />
+              <input id="qPrompt" placeholder="Question prompt" required />
+              <input id="qOptions" placeholder="Options (comma-separated)" required />
+              <input id="qCorrect" type="number" min="0" value="0" required />
+              <button class="primary" type="submit">Save Test</button>
+            </form>
+
+            <h3 style="margin-top:1rem;">Create Announcement</h3>
+            <form id="announcementForm">
+              <input id="anTitle" placeholder="Title" required />
+              <textarea id="anMsg" placeholder="Message" required></textarea>
+              <button class="primary" type="submit">Publish</button>
+            </form>
+            <div id="adminStatus" class="status"></div>
+          </article>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script>
+    const state = { token: '', role: '', username: '', level: '' };
+    const el = (id) => document.getElementById(id);
+    const authHeaders = () => state.token ? { Authorization: `Bearer ${state.token}` } : {};
+
+    async function jfetch(url, options = {}) {
+      const res = await fetch(url, options);
+      const text = await res.text();
+      const data = text ? (() => { try { return JSON.parse(text); } catch { return {}; } })() : {};
+      if (!res.ok) throw new Error(data.error || `Request failed (${res.status})`);
+      return data;
+    }
+
+    function setSession(data) {
+      state.token = data.token;
+      state.role = data.role;
+      state.username = data.username;
+      state.level = data.level;
+      el('sessionUser').textContent = `User: ${state.username}`;
+      el('sessionRole').textContent = `Role: ${state.role}`;
+      el('sessionLevel').textContent = `Level: ${state.level}`;
+    }
+
+    function renderDashboard(data) {
+      el('courseAccessRows').innerHTML = (data.courses || []).map(item =>
+        `<tr><td>${item.course.title}</td><td>${item.course.requiredStartingLevel}</td><td>${item.unlocked ? 'Unlocked' : 'Locked'}</td><td>${item.reason}</td></tr>`
+      ).join('') || '<tr><td colspan="4" class="muted">No courses available</td></tr>';
+
+      el('announcementList').innerHTML = (data.announcements || []).map(a => `<p><strong>${a.title}</strong><br>${a.message}</p>`).join('') || 'No announcements.';
+      el('kCourses').textContent = data.courses?.length || 0;
+      el('kAnnouncements').textContent = data.announcements?.length || 0;
+    }
+
+    async function refreshCounts() {
+      try {
+        const [tests, tools] = await Promise.all([
+          state.token ? jfetch('/api/tests', { headers: authHeaders() }) : Promise.resolve([]),
+          state.token ? jfetch('/api/tools', { headers: authHeaders() }) : Promise.resolve([])
+        ]);
+        el('kTests').textContent = tests.length || 0;
+        el('kTools').textContent = tools.length || 0;
+      } catch {}
+    }
+
+    async function loadDashboard() {
+      if (!state.token) return;
+      const data = await jfetch('/api/dashboard', { headers: authHeaders() });
+      renderDashboard(data);
+      await refreshCounts();
+    }
+
+    function nav(view) {
+      ['dashboard','auth','admin'].forEach(v => {
+        el(v + 'View').classList.toggle('hidden', v !== view);
+      });
+      document.querySelectorAll('.nav button').forEach(btn => btn.classList.toggle('active', btn.dataset.view === view));
+    }
+    document.querySelectorAll('.nav button').forEach(btn => btn.addEventListener('click', () => nav(btn.dataset.view)));
+
+    el('loginForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      try {
+        const data = await jfetch('/api/auth/login', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username: el('loginUsername').value.trim(), password: el('loginPassword').value })
+        });
+        setSession(data);
+        el('loginStatus').textContent = 'Logged in.';
+        el('loginStatus').className = 'status ok';
+        await loadDashboard();
+        nav('dashboard');
+      } catch (err) {
+        el('loginStatus').textContent = err.message;
+        el('loginStatus').className = 'status err';
+      }
+    });
+
+    el('signupForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      try {
+        const data = await jfetch('/api/auth/signup', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            name: el('suName').value,
+            username: el('suUsername').value,
+            email: el('suEmail').value,
+            password: el('suPassword').value,
+            level: Number(el('suLevel').value),
+            role: el('suRole').value,
+            adminInviteCode: el('suCode').value || null
+          })
+        });
+        setSession(data);
+        el('signupStatus').textContent = 'Account created and logged in.';
+        el('signupStatus').className = 'status ok';
+        await loadDashboard();
+        nav('dashboard');
+      } catch (err) {
+        el('signupStatus').textContent = err.message;
+        el('signupStatus').className = 'status err';
+      }
+    });
+
+    async function adminPost(path, payload) {
+      if (state.role !== 'admin') throw new Error('Admin access required');
+      await jfetch(path, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...authHeaders() },
+        body: JSON.stringify(payload)
+      });
+      el('adminStatus').textContent = 'Saved.';
+      el('adminStatus').className = 'status ok';
+      await loadDashboard();
+    }
+
+    el('inviteForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      try {
+        const code = await jfetch('/api/admin/invite-codes', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', ...authHeaders() },
+          body: JSON.stringify({ uses: Number(el('inviteUses').value || 1) })
+        });
+        el('inviteStatus').textContent = `Generated code: ${code.code} (uses: ${code.usesRemaining})`;
+        el('inviteStatus').className = 'status ok';
+      } catch (err) {
+        el('inviteStatus').textContent = err.message;
+        el('inviteStatus').className = 'status err';
+      }
+    });
+
+    el('toolForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      try {
+        await adminPost('/api/admin/tools', { name: el('toolName').value, description: el('toolDesc').value, link: el('toolLink').value });
+        e.target.reset();
+      } catch (err) { el('adminStatus').textContent = err.message; el('adminStatus').className = 'status err'; }
+    });
+
+    el('courseForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const prereq = el('coursePrereqTests').value.split(',').map(v => v.trim()).filter(Boolean);
+      try {
+        await adminPost('/api/admin/courses', {
+          title: el('courseTitle').value,
+          category: el('courseCategory').value,
+          description: el('courseDesc').value,
+          requiredStartingLevel: Number(el('courseLevel').value),
+          requiredPassedTestIDs: prereq,
+          sections: [{
+            id: crypto.randomUUID(),
+            title: el('courseSectionTitle').value,
+            chapters: [{ id: crypto.randomUUID(), title: el('courseChapterTitle').value, contentMarkdown: el('courseChapterContent').value, toolIDs: [] }]
+          }],
+          isPublished: el('coursePublished').value === 'true'
+        });
+        e.target.reset();
+      } catch (err) { el('adminStatus').textContent = err.message; el('adminStatus').className = 'status err'; }
+    });
+
+    el('testForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      try {
+        await adminPost('/api/admin/tests', {
+          courseID: el('testCourseId').value,
+          title: el('testTitle').value,
+          passingScore: Number(el('testPassing').value),
+          questions: [{
+            id: crypto.randomUUID(),
+            prompt: el('qPrompt').value,
+            options: el('qOptions').value.split(',').map(v => v.trim()).filter(Boolean),
+            correctOptionIndex: Number(el('qCorrect').value)
+          }]
+        });
+        e.target.reset();
+      } catch (err) { el('adminStatus').textContent = err.message; el('adminStatus').className = 'status err'; }
+    });
+
+    el('announcementForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      try {
+        await adminPost('/api/admin/announcements', { title: el('anTitle').value, message: el('anMsg').value });
+        e.target.reset();
+      } catch (err) { el('adminStatus').textContent = err.message; el('adminStatus').className = 'status err'; }
+    });
+
+    nav('auth');
+  </script>
+</body>
+</html>
