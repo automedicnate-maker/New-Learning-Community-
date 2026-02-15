@@ -43,6 +43,10 @@ func bearerToken(from headers: [String: String]) -> String? {
     return String(auth.dropFirst(7))
 }
 
+func activeCommunitySlug(from headers: [String: String]) -> String? {
+    headers["x-community-slug"]?.trimmingCharacters(in: .whitespacesAndNewlines)
+}
+
 func authenticatedUser(from request: HTTPRequest) -> User? {
     store.user(token: bearerToken(from: request.headers))
 }
@@ -56,6 +60,10 @@ func decode<T: Decodable>(_ type: T.Type, from data: Data) -> T? {
     let decoder = JSONDecoder()
     decoder.dateDecodingStrategy = .iso8601
     return try? decoder.decode(T.self, from: data)
+}
+
+func resolveCommunity(for user: User, in request: HTTPRequest) -> Community? {
+    store.accessibleCommunity(for: user, slug: activeCommunitySlug(from: request.headers))
 }
 
 func handle(_ request: HTTPRequest) -> HTTPResponse {
@@ -85,30 +93,40 @@ func handle(_ request: HTTPRequest) -> HTTPResponse {
             return .error(error.text, status: 400)
         }
 
+    case ("GET", "/api/communities"):
+        guard let user = authenticatedUser(from: request) else { return .error("unauthorized", status: 401) }
+        return .json(store.allCommunities(for: user))
+
     case ("GET", "/api/dashboard"):
         guard let user = authenticatedUser(from: request) else { return .error("unauthorized", status: 401) }
-        return .json(store.dashboard(for: user))
+        guard let community = resolveCommunity(for: user, in: request) else { return .error("community not found or inaccessible", status: 403) }
+        return .json(store.dashboard(for: user, community: community))
 
     case ("GET", "/api/courses"):
         guard let user = authenticatedUser(from: request) else { return .error("unauthorized", status: 401) }
-        return .json(store.courseAccessList(for: user))
+        guard let community = resolveCommunity(for: user, in: request) else { return .error("community not found or inaccessible", status: 403) }
+        return .json(store.courseAccessList(for: user, communityID: community.id))
 
     case ("GET", "/api/tests"):
-        guard authenticatedUser(from: request) != nil else { return .error("unauthorized", status: 401) }
-        return .json(store.allTests())
+        guard let user = authenticatedUser(from: request) else { return .error("unauthorized", status: 401) }
+        guard let community = resolveCommunity(for: user, in: request) else { return .error("community not found or inaccessible", status: 403) }
+        return .json(store.allTests(in: community.id))
 
     case ("GET", "/api/tools"):
-        guard authenticatedUser(from: request) != nil else { return .error("unauthorized", status: 401) }
-        return .json(store.allTools())
+        guard let user = authenticatedUser(from: request) else { return .error("unauthorized", status: 401) }
+        guard let community = resolveCommunity(for: user, in: request) else { return .error("community not found or inaccessible", status: 403) }
+        return .json(store.allTools(in: community.id))
 
     case ("GET", "/api/announcements"):
-        guard authenticatedUser(from: request) != nil else { return .error("unauthorized", status: 401) }
-        return .json(store.allAnnouncements())
+        guard let user = authenticatedUser(from: request) else { return .error("unauthorized", status: 401) }
+        guard let community = resolveCommunity(for: user, in: request) else { return .error("community not found or inaccessible", status: 403) }
+        return .json(store.allAnnouncements(in: community.id))
 
     case ("POST", "/api/tests/submit"):
         guard let user = authenticatedUser(from: request) else { return .error("unauthorized", status: 401) }
+        guard let community = resolveCommunity(for: user, in: request) else { return .error("community not found or inaccessible", status: 403) }
         guard let payload = decode(SubmitTestRequest.self, from: request.body) else { return .error("invalid payload", status: 400) }
-        switch store.submitTest(user: user, payload: payload) {
+        switch store.submitTest(user: user, payload: payload, communityID: community.id) {
         case .success(let attempt): return .json(attempt, status: 201)
         case .failure(let err): return .error(err.text, status: 400)
         }
@@ -116,6 +134,22 @@ func handle(_ request: HTTPRequest) -> HTTPResponse {
     case ("GET", "/api/admin/overview"):
         guard requireAdmin(request) != nil else { return .error("forbidden", status: 403) }
         return .json(store.adminOverview())
+
+    case ("POST", "/api/admin/communities"):
+        guard requireAdmin(request) != nil else { return .error("forbidden", status: 403) }
+        guard let payload = decode(CreateCommunityRequest.self, from: request.body) else { return .error("invalid payload", status: 400) }
+        switch store.createCommunity(payload) {
+        case .success(let community): return .json(community, status: 201)
+        case .failure(let err): return .error(err.text, status: 400)
+        }
+
+    case ("POST", "/api/admin/community-members"):
+        guard requireAdmin(request) != nil else { return .error("forbidden", status: 403) }
+        guard let payload = decode(CreateCommunityMemberRequest.self, from: request.body) else { return .error("invalid payload", status: 400) }
+        switch store.addCommunityMember(payload) {
+        case .success(let membership): return .json(membership, status: 201)
+        case .failure(let err): return .error(err.text, status: 400)
+        }
 
     case ("POST", "/api/admin/invite-codes"):
         guard let admin = requireAdmin(request) else { return .error("forbidden", status: 403) }
@@ -125,12 +159,18 @@ func handle(_ request: HTTPRequest) -> HTTPResponse {
     case ("POST", "/api/admin/tools"):
         guard requireAdmin(request) != nil else { return .error("forbidden", status: 403) }
         guard let payload = decode(CreateToolRequest.self, from: request.body) else { return .error("invalid payload", status: 400) }
-        return .json(store.addTool(payload), status: 201)
+        switch store.addTool(payload) {
+        case .success(let tool): return .json(tool, status: 201)
+        case .failure(let err): return .error(err.text, status: 400)
+        }
 
     case ("POST", "/api/admin/courses"):
         guard requireAdmin(request) != nil else { return .error("forbidden", status: 403) }
         guard let payload = decode(CreateCourseRequest.self, from: request.body) else { return .error("invalid payload", status: 400) }
-        return .json(store.addCourse(payload), status: 201)
+        switch store.addCourse(payload) {
+        case .success(let course): return .json(course, status: 201)
+        case .failure(let err): return .error(err.text, status: 400)
+        }
 
     case ("POST", "/api/admin/tests"):
         guard requireAdmin(request) != nil else { return .error("forbidden", status: 403) }
@@ -143,7 +183,10 @@ func handle(_ request: HTTPRequest) -> HTTPResponse {
     case ("POST", "/api/admin/announcements"):
         guard requireAdmin(request) != nil else { return .error("forbidden", status: 403) }
         guard let payload = decode(CreateAnnouncementRequest.self, from: request.body) else { return .error("invalid payload", status: 400) }
-        return .json(store.addAnnouncement(payload), status: 201)
+        switch store.addAnnouncement(payload) {
+        case .success(let announcement): return .json(announcement, status: 201)
+        case .failure(let err): return .error(err.text, status: 400)
+        }
 
     default:
         return .error("not found", status: 404)

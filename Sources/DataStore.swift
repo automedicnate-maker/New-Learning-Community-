@@ -10,6 +10,8 @@ enum StoreError: Error {
 
 final class LearningDataStore {
     private var users: [User]
+    private var communities: [Community]
+    private var communityMembers: [CommunityMember]
     private var courses: [Course]
     private var tests: [Test]
     private var tools: [ToolResource]
@@ -17,8 +19,10 @@ final class LearningDataStore {
     private var inviteCodes: [InviteCode]
     private var attempts: [TestAttempt]
 
-    init(users: [User], courses: [Course], tests: [Test], tools: [ToolResource], announcements: [Announcement], inviteCodes: [InviteCode], attempts: [TestAttempt]) {
+    init(users: [User], communities: [Community], communityMembers: [CommunityMember], courses: [Course], tests: [Test], tools: [ToolResource], announcements: [Announcement], inviteCodes: [InviteCode], attempts: [TestAttempt]) {
         self.users = users
+        self.communities = communities
+        self.communityMembers = communityMembers
         self.courses = courses
         self.tests = tests
         self.tools = tools
@@ -28,6 +32,15 @@ final class LearningDataStore {
     }
 
     static func bootstrap() -> LearningDataStore {
+        let automotiveCommunity = Community(
+            id: UUID(),
+            slug: "automotive",
+            name: "Automotive",
+            description: "Automotive diagnostics and technician training campus.",
+            brandingConfig: ["primaryColor": "#2563eb", "logo": "wrench"],
+            status: .active
+        )
+
         let defaultAdmin = User(
             id: UUID(),
             username: "wrenchadmin",
@@ -39,8 +52,18 @@ final class LearningDataStore {
             password: "ChangeMeNow!123"
         )
 
+        let defaultAdminMembership = CommunityMember(
+            id: UUID(),
+            communityID: automotiveCommunity.id,
+            userID: defaultAdmin.id,
+            role: .admin,
+            joinedAt: Date()
+        )
+
         return LearningDataStore(
             users: [defaultAdmin],
+            communities: [automotiveCommunity],
+            communityMembers: [defaultAdminMembership],
             courses: [],
             tests: [],
             tools: [],
@@ -90,6 +113,15 @@ final class LearningDataStore {
             password: request.password
         )
         users.append(user)
+
+        let defaultSlug = request.communitySlug ?? "automotive"
+        guard let community = communities.first(where: { $0.slug == defaultSlug }) else {
+            users.removeAll { $0.id == user.id }
+            return .failure(.message("Selected community not found."))
+        }
+        let role: CommunityRole = request.role == .admin ? .admin : .learner
+        communityMembers.append(CommunityMember(id: UUID(), communityID: community.id, userID: user.id, role: role, joinedAt: Date()))
+
         return .success(user)
     }
 
@@ -98,10 +130,29 @@ final class LearningDataStore {
         return users.first { $0.token == token }
     }
 
-    func allCourses() -> [Course] { courses }
-    func allTests() -> [Test] { tests }
-    func allTools() -> [ToolResource] { tools }
-    func allAnnouncements() -> [Announcement] { announcements.sorted { $0.createdAt > $1.createdAt } }
+    func allCommunities(for user: User) -> [Community] {
+        let allowedIDs = Set(communityMembers.filter { $0.userID == user.id }.map(\.communityID))
+        return communities.filter { allowedIDs.contains($0.id) }
+    }
+
+    func allCourses(in communityID: UUID) -> [Course] { courses.filter { $0.communityID == communityID } }
+    func allTests(in communityID: UUID) -> [Test] { tests.filter { $0.communityID == communityID } }
+    func allTools(in communityID: UUID) -> [ToolResource] { tools.filter { $0.communityID == communityID } }
+    func allAnnouncements(in communityID: UUID) -> [Announcement] { announcements.filter { $0.communityID == communityID }.sorted { $0.createdAt > $1.createdAt } }
+
+    func community(for slug: String) -> Community? {
+        communities.first { $0.slug.caseInsensitiveCompare(slug) == .orderedSame }
+    }
+
+    func accessibleCommunity(for user: User, slug: String?) -> Community? {
+        let memberships = communityMembers.filter { $0.userID == user.id }
+        guard !memberships.isEmpty else { return nil }
+        if let slug {
+            guard let requested = community(for: slug) else { return nil }
+            return memberships.contains(where: { $0.communityID == requested.id }) ? requested : nil
+        }
+        return communities.first { community in memberships.contains(where: { $0.communityID == community.id }) }
+    }
 
     private func passedTestIDs(for user: User) -> Set<UUID> {
         Set(attempts.filter { $0.userID == user.id && $0.passed }.map(\.testID))
@@ -120,31 +171,39 @@ final class LearningDataStore {
         return (true, "Unlocked")
     }
 
-    func courseAccessList(for user: User) -> [CourseAccess] {
-        courses.filter { $0.isPublished || user.role == .admin }.map {
+    func courseAccessList(for user: User, communityID: UUID) -> [CourseAccess] {
+        allCourses(in: communityID).filter { $0.isPublished || user.role == .admin }.map {
             let access = canAccess(course: $0, user: user)
             return CourseAccess(course: $0, unlocked: access.0, reason: access.1)
         }
     }
 
-    func dashboard(for user: User) -> DashboardResponse {
+    func dashboard(for user: User, community: Community) -> DashboardResponse {
         DashboardResponse(
             user: UserProfile(id: user.id, username: user.username, email: user.email, name: user.name, role: user.role, level: user.level),
-            courses: courseAccessList(for: user),
-            attempts: attempts.filter { $0.userID == user.id }.sorted { $0.submittedAt > $1.submittedAt },
-            announcements: allAnnouncements()
+            activeCommunity: community,
+            courses: courseAccessList(for: user, communityID: community.id),
+            attempts: attempts.filter { $0.userID == user.id && allTests(in: community.id).map(\.id).contains($0.testID) }.sorted { $0.submittedAt > $1.submittedAt },
+            announcements: allAnnouncements(in: community.id)
         )
     }
 
-    func addTool(_ req: CreateToolRequest) -> ToolResource {
-        let tool = ToolResource(id: UUID(), name: req.name, description: req.description, link: req.link)
+    func addTool(_ req: CreateToolRequest) -> Result<ToolResource, StoreError> {
+        guard let community = community(for: req.communitySlug) else {
+            return .failure(.message("community not found"))
+        }
+        let tool = ToolResource(id: UUID(), communityID: community.id, name: req.name, description: req.description, link: req.link)
         tools.append(tool)
-        return tool
+        return .success(tool)
     }
 
-    func addCourse(_ req: CreateCourseRequest) -> Course {
+    func addCourse(_ req: CreateCourseRequest) -> Result<Course, StoreError> {
+        guard let community = community(for: req.communitySlug) else {
+            return .failure(.message("community not found"))
+        }
         let course = Course(
             id: UUID(),
+            communityID: community.id,
             title: req.title,
             category: req.category,
             description: req.description,
@@ -154,22 +213,54 @@ final class LearningDataStore {
             isPublished: req.isPublished
         )
         courses.append(course)
-        return course
+        return .success(course)
     }
 
     func addTest(_ req: CreateTestRequest) -> Result<Test, StoreError> {
-        guard courses.contains(where: { $0.id == req.courseID }) else {
+        guard let community = community(for: req.communitySlug) else {
+            return .failure(.message("community not found"))
+        }
+        guard courses.contains(where: { $0.id == req.courseID && $0.communityID == community.id }) else {
             return .failure(.message("courseID not found"))
         }
-        let test = Test(id: UUID(), courseID: req.courseID, title: req.title, passingScore: req.passingScore, questions: req.questions)
+        let test = Test(id: UUID(), communityID: community.id, courseID: req.courseID, title: req.title, passingScore: req.passingScore, questions: req.questions)
         tests.append(test)
         return .success(test)
     }
 
-    func addAnnouncement(_ req: CreateAnnouncementRequest) -> Announcement {
-        let item = Announcement(id: UUID(), title: req.title, message: req.message, createdAt: Date())
+    func addAnnouncement(_ req: CreateAnnouncementRequest) -> Result<Announcement, StoreError> {
+        guard let community = community(for: req.communitySlug) else {
+            return .failure(.message("community not found"))
+        }
+        let item = Announcement(id: UUID(), communityID: community.id, title: req.title, message: req.message, createdAt: Date())
         announcements.append(item)
-        return item
+        return .success(item)
+    }
+
+    func createCommunity(_ req: CreateCommunityRequest) -> Result<Community, StoreError> {
+        let normalizedSlug = req.slug.lowercased()
+        guard !normalizedSlug.isEmpty else { return .failure(.message("slug cannot be empty")) }
+        guard communities.allSatisfy({ $0.slug != normalizedSlug }) else {
+            return .failure(.message("community slug already exists"))
+        }
+        let community = Community(id: UUID(), slug: normalizedSlug, name: req.name, description: req.description, brandingConfig: req.brandingConfig, status: req.status)
+        communities.append(community)
+        return .success(community)
+    }
+
+    func addCommunityMember(_ req: CreateCommunityMemberRequest) -> Result<CommunityMember, StoreError> {
+        guard let community = community(for: req.communitySlug) else {
+            return .failure(.message("community not found"))
+        }
+        guard let user = users.first(where: { $0.username.caseInsensitiveCompare(req.username) == .orderedSame }) else {
+            return .failure(.message("user not found"))
+        }
+        if communityMembers.contains(where: { $0.communityID == community.id && $0.userID == user.id }) {
+            return .failure(.message("user already belongs to this community"))
+        }
+        let membership = CommunityMember(id: UUID(), communityID: community.id, userID: user.id, role: req.role, joinedAt: Date())
+        communityMembers.append(membership)
+        return .success(membership)
     }
 
     func createInviteCode(uses: Int, adminID: UUID) -> InviteCode {
@@ -180,9 +271,12 @@ final class LearningDataStore {
         return invite
     }
 
-    func submitTest(user: User, payload: SubmitTestRequest) -> Result<TestAttempt, StoreError> {
+    func submitTest(user: User, payload: SubmitTestRequest, communityID: UUID) -> Result<TestAttempt, StoreError> {
         guard let test = tests.first(where: { $0.id == payload.testID }) else {
             return .failure(.message("Test not found"))
+        }
+        guard test.communityID == communityID else {
+            return .failure(.message("Test is not in the active community"))
         }
         guard payload.selectedOptionIndexes.count == test.questions.count else {
             return .failure(.message("Answer count does not match question count"))
@@ -202,6 +296,8 @@ final class LearningDataStore {
 
     func adminOverview() -> AdminOverview {
         AdminOverview(
+            communities: communities,
+            communityMembers: communityMembers,
             users: users.map { UserProfile(id: $0.id, username: $0.username, email: $0.email, name: $0.name, role: $0.role, level: $0.level) },
             courses: courses,
             tests: tests,
