@@ -114,8 +114,9 @@ final class LearningDataStore {
         )
         users.append(user)
 
-        let defaultSlug = request.communitySlug ?? "automotive"
-        guard let community = communities.first(where: { $0.slug == defaultSlug }) else {
+        let desiredSlug = request.communitySlug?.trimmingCharacters(in: .whitespacesAndNewlines)
+        let defaultSlug = (desiredSlug?.isEmpty == false) ? desiredSlug! : "automotive"
+        guard let community = community(for: defaultSlug) else {
             users.removeAll { $0.id == user.id }
             return .failure(.message("Selected community not found."))
         }
@@ -154,16 +155,21 @@ final class LearningDataStore {
         return communities.first { community in memberships.contains(where: { $0.communityID == community.id }) }
     }
 
-    private func passedTestIDs(for user: User) -> Set<UUID> {
-        Set(attempts.filter { $0.userID == user.id && $0.passed }.map(\.testID))
+    private func passedTestIDs(for user: User, communityID: UUID) -> Set<UUID> {
+        let testIDsInCommunity = Set(allTests(in: communityID).map(\.id))
+        return Set(
+            attempts
+                .filter { $0.userID == user.id && $0.passed && testIDsInCommunity.contains($0.testID) }
+                .map(\.testID)
+        )
     }
 
-    private func canAccess(course: Course, user: User) -> (Bool, String) {
+    private func canAccess(course: Course, user: User, communityID: UUID) -> (Bool, String) {
         if user.role == .admin { return (true, "Admin access") }
         if user.level.rawValue < course.requiredStartingLevel.rawValue {
             return (false, "Requires \(course.requiredStartingLevel.label) level")
         }
-        let passed = passedTestIDs(for: user)
+        let passed = passedTestIDs(for: user, communityID: communityID)
         let missing = course.requiredPassedTestIDs.filter { !passed.contains($0) }
         if !missing.isEmpty {
             return (false, "Requires passing prerequisite tests")
@@ -173,17 +179,18 @@ final class LearningDataStore {
 
     func courseAccessList(for user: User, communityID: UUID) -> [CourseAccess] {
         allCourses(in: communityID).filter { $0.isPublished || user.role == .admin }.map {
-            let access = canAccess(course: $0, user: user)
+            let access = canAccess(course: $0, user: user, communityID: communityID)
             return CourseAccess(course: $0, unlocked: access.0, reason: access.1)
         }
     }
 
     func dashboard(for user: User, community: Community) -> DashboardResponse {
-        DashboardResponse(
+        let testIDsInCommunity = Set(allTests(in: community.id).map(\.id))
+        return DashboardResponse(
             user: UserProfile(id: user.id, username: user.username, email: user.email, name: user.name, role: user.role, level: user.level),
             activeCommunity: community,
             courses: courseAccessList(for: user, communityID: community.id),
-            attempts: attempts.filter { $0.userID == user.id && allTests(in: community.id).map(\.id).contains($0.testID) }.sorted { $0.submittedAt > $1.submittedAt },
+            attempts: attempts.filter { $0.userID == user.id && testIDsInCommunity.contains($0.testID) }.sorted { $0.submittedAt > $1.submittedAt },
             announcements: allAnnouncements(in: community.id)
         )
     }
