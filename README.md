@@ -24,6 +24,11 @@ WRENCH is a mechanic training platform with admin and learner workflows.
 
 > Change this immediately in a real deployment.
 
+## Architecture
+
+- See the comprehensive implementation blueprint: `docs/gidipea-architecture-implementation-plan.md`.
+- The API now supports community-aware data isolation using `x-community-slug` header on authenticated requests.
+
 ## Run
 
 ```bash
@@ -40,6 +45,7 @@ App runs at `http://localhost:8080`.
 - `POST /api/auth/signup`
 
 ### Authenticated user
+- `GET /api/communities`
 - `GET /api/dashboard`
 - `GET /api/courses`
 - `GET /api/tests`
@@ -48,6 +54,8 @@ App runs at `http://localhost:8080`.
 - `POST /api/tests/submit`
 
 ### Admin only
+- `POST /api/admin/communities`
+- `POST /api/admin/community-members`
 - `GET /api/admin/overview`
 - `POST /api/admin/invite-codes`
 - `POST /api/admin/tools`
@@ -58,3 +66,10 @@ App runs at `http://localhost:8080`.
 ## Notes
 
 Data is currently in-memory for rapid iteration. Persisting to a real database is the next production step.
+
+
+## Community scoping
+
+Set `x-community-slug` on authenticated requests (dashboard/courses/tests/tools/announcements/test submission) to select the active community.
+
+If omitted, the first community membership is used.

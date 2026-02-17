@@ -5,6 +5,36 @@ enum UserRole: String, Codable {
     case learner
 }
 
+enum CommunityStatus: String, Codable {
+    case active
+    case `private`
+    case comingSoon = "coming_soon"
+}
+
+enum CommunityRole: String, Codable {
+    case admin
+    case instructor
+    case moderator
+    case learner
+}
+
+struct Community: Codable {
+    let id: UUID
+    var slug: String
+    var name: String
+    var description: String
+    var brandingConfig: [String: String]
+    var status: CommunityStatus
+}
+
+struct CommunityMember: Codable {
+    let id: UUID
+    let communityID: UUID
+    let userID: UUID
+    var role: CommunityRole
+    let joinedAt: Date
+}
+
 enum SkillLevel: Int, Codable, CaseIterable {
     case beginner = 1
     case intermediate = 2
@@ -32,6 +62,7 @@ struct User: Codable {
 
 struct ToolResource: Codable {
     let id: UUID
+    let communityID: UUID
     var name: String
     var description: String
     var link: String
@@ -52,6 +83,7 @@ struct Section: Codable {
 
 struct Course: Codable {
     let id: UUID
+    let communityID: UUID
     var title: String
     var category: String
     var description: String
@@ -70,6 +102,7 @@ struct TestQuestion: Codable {
 
 struct Test: Codable {
     let id: UUID
+    let communityID: UUID
     var courseID: UUID
     var title: String
     var passingScore: Double
@@ -78,6 +111,7 @@ struct Test: Codable {
 
 struct Announcement: Codable {
     let id: UUID
+    let communityID: UUID
     var title: String
     var message: String
     var createdAt: Date
@@ -113,6 +147,7 @@ struct SignupRequest: Codable {
     let level: SkillLevel
     let role: UserRole
     let adminInviteCode: String?
+    let communitySlug: String?
 }
 
 struct LoginResponse: Codable {
@@ -145,6 +180,7 @@ struct CourseAccess: Codable {
 
 struct DashboardResponse: Codable {
     let user: UserProfile
+    let activeCommunity: Community
     let courses: [CourseAccess]
     let attempts: [TestAttempt]
     let announcements: [Announcement]
@@ -155,12 +191,14 @@ struct CreateInviteCodeRequest: Codable {
 }
 
 struct CreateToolRequest: Codable {
+    let communitySlug: String
     let name: String
     let description: String
     let link: String
 }
 
 struct CreateCourseRequest: Codable {
+    let communitySlug: String
     let title: String
     let category: String
     let description: String
@@ -171,6 +209,7 @@ struct CreateCourseRequest: Codable {
 }
 
 struct CreateTestRequest: Codable {
+    let communitySlug: String
     let courseID: UUID
     let title: String
     let passingScore: Double
@@ -178,8 +217,23 @@ struct CreateTestRequest: Codable {
 }
 
 struct CreateAnnouncementRequest: Codable {
+    let communitySlug: String
     let title: String
     let message: String
+}
+
+struct CreateCommunityRequest: Codable {
+    let slug: String
+    let name: String
+    let description: String
+    let brandingConfig: [String: String]
+    let status: CommunityStatus
+}
+
+struct CreateCommunityMemberRequest: Codable {
+    let communitySlug: String
+    let username: String
+    let role: CommunityRole
 }
 
 struct SubmitTestRequest: Codable {
@@ -188,6 +242,8 @@ struct SubmitTestRequest: Codable {
 }
 
 struct AdminOverview: Codable {
+    let communities: [Community]
+    let communityMembers: [CommunityMember]
     let users: [UserProfile]
     let courses: [Course]
     let tests: [Test]
