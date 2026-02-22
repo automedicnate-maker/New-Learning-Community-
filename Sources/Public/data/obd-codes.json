@@ -1,0 +1,12 @@
+[
+  {"code":"P0101","description":"Mass or Volume Air Flow Circuit Range/Performance"},
+  {"code":"P0171","description":"System Too Lean (Bank 1)"},
+  {"code":"P0300","description":"Random/Multiple Cylinder Misfire Detected"},
+  {"code":"P0301","description":"Cylinder 1 Misfire Detected"},
+  {"code":"P0420","description":"Catalyst System Efficiency Below Threshold (Bank 1)"},
+  {"code":"P0442","description":"Evaporative Emission System Leak Detected (small leak)"},
+  {"code":"P0507","description":"Idle Air Control System RPM Higher Than Expected"},
+  {"code":"P0700","description":"Transmission Control System Malfunction"},
+  {"code":"P1128","description":"Fuel Trim Too Lean"},
+  {"code":"U0100","description":"Lost Communication With ECM/PCM"}
+]

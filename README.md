@@ -73,3 +73,14 @@ Data is currently in-memory for rapid iteration. Persisting to a real database i
 Set `x-community-slug` on authenticated requests (dashboard/courses/tests/tools/announcements/test submission) to select the active community.
 
 If omitted, the first community membership is used.
+
+## FreeAutoDiag web interface
+
+A new browser UI is available at `/` with:
+- VIN decode via NHTSA vPIC
+- OBD-II code lookup (local JSON dataset)
+- PDF report export (jsPDF)
+- YouTube repair video lookup (user-supplied API key in browser)
+- Guided and advanced electrical simulator mode with Falstad embed
+
+Disclaimer is shown in-app on every view: **"Public sources only. Always verify with official service info."**
