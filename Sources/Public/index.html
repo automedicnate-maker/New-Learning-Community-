@@ -3,177 +3,294 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>FreeAutoDiag</title>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+  <title>FreeAutoDiag Pro</title>
+  <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Barlow+Condensed:wght@400;600;700;900&display=swap" rel="stylesheet">
   <style>
-    body { font-family: system-ui, sans-serif; margin: 0; background: #f3f4f6; }
-    .wrap { max-width: 1100px; margin: 0 auto; padding: 16px; }
-    .disclaimer { background: #fff3cd; border: 1px solid #ffe69c; padding: 10px; border-radius: 8px; margin-bottom: 14px; }
-    .tabs { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
-    .tab-button { padding: 10px 14px; border-radius: 10px 10px 0 0; border: 0; cursor: pointer; font-weight: 600; }
-    .active { background: #2563eb; color: #fff; }
-    .inactive { background: #d1d5db; }
-    .card { background: white; border-radius: 12px; padding: 16px; box-shadow: 0 1px 3px rgba(0,0,0,.1); }
-    input, select { width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #d1d5db; margin-bottom: 10px; }
-    button { border: 0; border-radius: 8px; padding: 10px 12px; cursor: pointer; font-weight: 600; }
-    .primary { background: #2563eb; color: #fff; }
-    .danger { background: #dc2626; color: #fff; }
-    .ok { background: #16a34a; color: #fff; }
-    .warn { background: #d97706; color: #fff; }
-    .row { display:flex; gap: 10px; flex-wrap: wrap; }
-    .row > * { flex: 1; min-width: 200px; }
-    ul { padding-left: 18px; }
-    pre { background: #111827; color: #f9fafb; padding: 10px; border-radius: 8px; white-space: pre-wrap; }
+    :root {
+      --red: #e63327;
+      --orange: #f5a623;
+      --dark: #0a0a0a;
+      --panel: #111418;
+      --panel2: #181d22;
+      --border: #2a2f35;
+      --text: #c8cdd3;
+      --dim: #5a6270;
+      --pass: #27c47a;
+      --fail: #e63327;
+      --warn: #f5a623;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: var(--dark); color: var(--text); font-family: 'Barlow Condensed', sans-serif; font-size: 15px; }
+    .app { min-height: 100vh; display: grid; grid-template-columns: 1fr; }
+    .sidebar { border-bottom: 2px solid var(--border); background: var(--panel); padding: 12px; position: sticky; top: 0; z-index: 9; }
+    .brand { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+    .badge { background: var(--red); color: #fff; padding: 5px 10px; font-family: 'Share Tech Mono', monospace; letter-spacing: 1px; font-size: 12px; }
+    .subtitle { color: var(--dim); font-family: 'Share Tech Mono', monospace; font-size: 10px; letter-spacing: 1px; }
+    .nav { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+    .nav button { border: 1px solid var(--border); background: var(--panel2); color: var(--text); padding: 10px 6px; font-family: 'Share Tech Mono', monospace; font-size: 11px; letter-spacing: 1px; }
+    .nav button.active { border-color: var(--red); color: #fff; background: #250b0a; }
+
+    main { padding: 14px; }
+    .view { display: none; animation: fade .2s ease; }
+    .view.active { display: block; }
+    @keyframes fade { from { opacity: 0; transform: translateY(4px);} to { opacity: 1; transform: translateY(0);} }
+
+    .panel { background: var(--panel2); border: 1px solid var(--border); padding: 12px; margin-bottom: 10px; }
+    .title { color: var(--orange); font-family: 'Share Tech Mono', monospace; font-size: 11px; letter-spacing: 2px; margin-bottom: 8px; }
+    input, textarea, select { width: 100%; background: #0f1215; color: var(--text); border: 1px solid var(--border); padding: 9px; margin-bottom: 8px; font-family: 'Share Tech Mono', monospace; font-size: 12px; }
+    textarea { min-height: 70px; resize: vertical; }
+    .row { display: grid; grid-template-columns: 1fr; gap: 8px; }
+    .btn { border: 0; padding: 10px 12px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; }
+    .btn.primary { background: var(--red); color: #fff; }
+    .btn.secondary { background: #2a3138; color: var(--text); }
+    .btn.warn { background: #3a2a08; color: var(--warn); border: 1px solid #5b4513; }
+
+    .parts-row { display: flex; overflow-x: auto; gap: 8px; padding-bottom: 6px; }
+    .part-chip { min-width: 120px; background: #1b2027; border: 1px dashed #4f5760; padding: 10px; text-align: center; cursor: pointer; }
+    .tile { border: 1px solid var(--border); background: #0f1215; padding: 10px; margin-bottom: 8px; }
+    .tile-head { display:flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+    .status { font-family: 'Share Tech Mono', monospace; font-size: 11px; padding: 2px 8px; border: 1px solid; }
+    .pass { color: var(--pass); border-color: #1f7f52; background: #0b1e16; }
+    .fail { color: var(--fail); border-color: #7c201a; background: #220d0c; }
+    .pending { color: var(--warn); border-color: #7a5a18; background: #221b0a; }
+    .stamp { animation: stamp .3s ease; }
+    @keyframes stamp { from { transform: scale(0.5) rotate(-8deg); opacity: 0;} to { transform: scale(1); opacity: 1;} }
+    .evidence img { width: 64px; height: 64px; object-fit: cover; border: 1px solid var(--border); margin-right: 6px; }
+
+    .preview-doc { background: #fff; color: #111; padding: 14px; border-radius: 2px; }
+    .preview-head { display:flex; justify-content: space-between; border-bottom: 2px solid #ddd; padding-bottom: 8px; margin-bottom: 8px; font-size: 12px; }
+    .stamp-badge { border: 3px solid; font-weight: 900; padding: 6px 10px; display: inline-block; transform: rotate(-5deg); margin-bottom: 8px; }
+    .stamp-pass { color: #0f7a1c; border-color: #0f7a1c; }
+    .stamp-fail { color: #b00020; border-color: #b00020; }
+    table { width: 100%; border-collapse: collapse; font-size: 11px; margin: 8px 0; }
+    th,td { border: 1px solid #d4d4d4; padding: 5px; vertical-align: top; }
+
+    .rules-grid { display: grid; grid-template-columns: 1fr; gap: 8px; }
+    .rule-card { background: var(--panel2); border: 1px solid var(--border); border-left: 3px solid var(--red); padding: 10px; }
+    .rule-num { color: var(--dim); font-family: 'Share Tech Mono', monospace; font-size: 10px; }
+    .table-wrap { overflow-x: auto; border: 1px solid var(--border); }
+    .table-wrap table { min-width: 760px; color: var(--text); }
+    .table-wrap th { color: var(--dim); font-family: 'Share Tech Mono', monospace; }
+
+    @media (min-width: 980px) {
+      .app { grid-template-columns: 220px 1fr; }
+      .sidebar { min-height: 100vh; border-right: 2px solid var(--border); border-bottom: 0; }
+      .nav { grid-template-columns: 1fr; }
+      main { padding: 18px 20px; max-width: 980px; }
+      .row.two { grid-template-columns: 1fr 1fr; }
+      .rules-grid { grid-template-columns: 1fr 1fr; }
+    }
+
+    @media print {
+      body { background: #fff; }
+      .sidebar, #builderView, #referenceView { display: none !important; }
+      main { padding: 0; }
+      .preview-doc { border-radius: 0; }
+    }
   </style>
 </head>
 <body>
-  <div class="wrap">
-    <h1>🚗 FreeAutoDiag</h1>
-    <div class="disclaimer">Public sources only. Always verify with official service info.</div>
+<div class="app">
+  <aside class="sidebar">
+    <div class="brand">
+      <div>
+        <div class="badge">HWAUT P200</div>
+        <div class="subtitle">PROFESSIONAL DIAGNOSTIC FLOW</div>
+      </div>
+      <strong>FDP</strong>
+    </div>
+    <div class="nav">
+      <button id="nav-builder" class="active" onclick="setView('builder')">01 JOB BUILDER</button>
+      <button id="nav-reference" onclick="setView('reference')">02 REFERENCE</button>
+      <button id="nav-preview" onclick="setView('preview')">03 REPORT</button>
+    </div>
+  </aside>
 
-    <div class="tabs" id="tabs"></div>
-    <section class="card" id="content"></section>
-  </div>
+  <main>
+    <section id="builderView" class="view active"></section>
+    <section id="referenceView" class="view"></section>
+    <section id="previewView" class="view"></section>
+  </main>
+</div>
 
 <script>
-const tabs = ['lookup','dashboard','obd','simulator'];
-let state = {
-  activeTab: 'lookup',
+const partsCatalog = [
+  { key:'battery', icon:'🔋', part:'Battery', test:'Battery OCV', tool:'DVOM', spec:'> 12.6V' },
+  { key:'alternator', icon:'⚡', part:'Alternator', test:'Charging Voltage', tool:'DVOM', spec:'13.8-14.8V' },
+  { key:'starter', icon:'🧲', part:'Starter', test:'Cranking Drop', tool:'Power Probe', spec:'< 0.5V' },
+  { key:'ground', icon:'🪛', part:'Ground Strap', test:'Ground Side Drop', tool:'DVOM', spec:'< 0.1V' }
+];
+
+const TESTS = [
+  { name:'Charging System', tool:'BOTH', p200:'Red clamp → B+, Black clamp → B−', dvom:'Red → B+, Black → B−', scenarios:[{scenario:'Alternator healthy at 2k RPM', cond:'Engine 2000 RPM, loads on', result:'pass', value:'14.2V stable'},{scenario:'Regulator overcharge', cond:'Engine running, high output', result:'fail', value:'15.7V over spec'}] },
+  { name:'Voltage Drop (Ground)', tool:'DVOM', p200:'N/A', dvom:'Red → load ground, Black → battery B−', scenarios:[{scenario:'Ground path healthy', cond:'Headlights on', result:'pass', value:'0.03V drop'},{scenario:'Corroded ground strap', cond:'Blower high speed', result:'fail', value:'0.68V drop'}] },
+  { name:'Battery Startup', tool:'P200', p200:'Red clamp → B+, Black clamp → B−', dvom:'Compare crank volts', scenarios:[{scenario:'Battery passes load', cond:'Crank 5 sec', result:'pass', value:'10.0V'},{scenario:'Battery weak', cond:'Cold start', result:'fail', value:'8.2V during crank'}] }
+];
+
+const state = {
+  activeView: 'builder',
+  shop: 'Summit Auto Electrical Diagnostics',
+  tech: 'Alex Rivera',
+  mileage: '164,288',
   vin: '',
-  vehicle: null,
-  obdSearch: '',
-  obdResults: [],
-  youtubeVideos: [],
-  youtubeKey: localStorage.getItem('youtubeKey') || '',
-  simulatorMode: 'guided',
-  selectedCircuit: 'charging',
-  fault: 'none',
-  measurement: { point:'', value:'' },
-  scopeData: 'Normal waveform',
+  vehicle: '',
+  recommendations: 'Based on current results, repair high resistance grounds and re-test before replacing major components.',
+  workOrder: [],
+  generated: []
 };
 
-const circuits = {
-  charging: {name:'Battery & Charging System', diagram:'🟢 Battery (+) ── Alternator ── Fuse ── Loads\n⚫ Ground (─)', probePoints:['Battery Positive','Alternator Output','Battery Negative'], normalReadings:{'Battery Positive':'12.6V','Alternator Output':'13.8-14.5V','Battery Negative':'0V'}},
-  starting: {name:'Starting System', diagram:'Key → Relay Coil → Contacts → Starter Motor → Ground', probePoints:['Relay Control','Starter Positive','Battery at Crank'], normalReadings:{'Relay Control':'12V when cranking','Starter Positive':'10-12V','Battery at Crank':'≥9.6V'}},
-  crank: {name:'Crankshaft Position Sensor', diagram:'5V Ref ── Sensor ── Signal Wire ── ECU\nScope shows 0-5V pulses', probePoints:['Sensor Power','Signal Wire','Ground'], normalReadings:{'Sensor Power':'5V','Signal Wire':'Pulsing 0-5V','Ground':'0V'}}
-};
-
-function renderTabs(){
-  tabsEl.innerHTML = tabs.map(t => `<button class="tab-button ${state.activeTab===t?'active':'inactive'}" onclick="setTab('${t}')">${t[0].toUpperCase()+t.slice(1)}</button>`).join('');
-}
-function setTab(tab){ state.activeTab = tab; render(); }
-
-async function fetchVehicle(){
-  if(!state.vin) return;
-  const res = await fetch(`https://vpic.nhtsa.dot.gov/api/vehicles/DecodeVinValuesExtended/${state.vin}?format=json`);
-  const data = await res.json();
-  state.vehicle = data.Results?.[0] || null;
-  state.activeTab = 'dashboard';
+function setView(view){
+  state.activeView = view;
+  ['builder','reference','preview'].forEach(v => {
+    document.getElementById(v+'View').classList.toggle('active', v===view);
+    document.getElementById('nav-'+v).classList.toggle('active', v===view);
+  });
   render();
 }
 
-async function searchOBD(){
-  const res = await fetch('/data/obd-codes.json');
-  const all = await res.json();
-  const q = state.obdSearch.toLowerCase();
-  state.obdResults = all.filter(c => c.code.includes(state.obdSearch.toUpperCase()) || c.description.toLowerCase().includes(q)).slice(0,10);
+function addPart(key){
+  const p = partsCatalog.find(x => x.key===key);
+  state.workOrder.push({ id: Date.now()+Math.random(), ...p, measured:'', override:false, overrideSpec:'', notes:'', evidence:[], result:'Pending', stamped:false });
   render();
 }
 
-async function searchYouTube(){
-  if(!state.youtubeKey || !state.vehicle) return alert('Add YouTube API key first.');
-  const q = `${state.vehicle.Make} ${state.vehicle.Model} ${state.vehicle.ModelYear} repair`;
-  const url = `https://www.googleapis.com/youtube/v3/search?part=snippet&q=${encodeURIComponent(q)}&maxResults=3&key=${state.youtubeKey}`;
-  const data = await (await fetch(url)).json();
-  state.youtubeVideos = data.items || [];
+function evaluate(tile){
+  const spec = tile.override && tile.overrideSpec ? tile.overrideSpec : tile.spec;
+  const val = parseFloat(String(tile.measured).replace(/[^0-9.\-]/g,''));
+  if (!tile.measured || Number.isNaN(val)) return 'Pending';
+  const gt = spec.match(/>\s*([0-9.]+)/); const lt = spec.match(/<\s*([0-9.]+)/); const range = spec.match(/([0-9.]+)\s*[-–]\s*([0-9.]+)/);
+  if (range) return val >= parseFloat(range[1]) && val <= parseFloat(range[2]) ? 'Pass' : 'Fail';
+  if (gt) return val > parseFloat(gt[1]) ? 'Pass' : 'Fail';
+  if (lt) return val < parseFloat(lt[1]) ? 'Pass' : 'Fail';
+  return 'Pending';
+}
+
+function updateTile(id, key, value){
+  const t = state.workOrder.find(x => x.id===id); if(!t) return;
+  const prev = t.result;
+  t[key]=value; t.result = evaluate(t); t.stamped = prev!=='Pass' && t.result==='Pass';
+  if (t.stamped) thud();
   render();
 }
 
-function saveApiKey(v){ state.youtubeKey=v; localStorage.setItem('youtubeKey', v); }
-
-function generatePDF(){
-  const { jsPDF } = window.jspdf;
-  const doc = new jsPDF();
-  doc.text(`FreeAutoDiag Report - ${state.vehicle?.ModelYear||''} ${state.vehicle?.Make||''} ${state.vehicle?.Model||''}`, 14, 15);
-  doc.text('Public sources only. Always verify with official service info.', 14, 24);
-  doc.autoTable({ startY: 32, head:[['Code','Description']], body: state.obdResults.map(r => [r.code, r.description]) });
-  doc.save('FreeAutoDiag-Report.pdf');
+function thud(){
+  try { const ctx = new (window.AudioContext||window.webkitAudioContext)(); const o = ctx.createOscillator(); const g = ctx.createGain(); o.frequency.value = 125; g.gain.value=.15; g.gain.exponentialRampToValueAtTime(.001, ctx.currentTime+.15); o.connect(g); g.connect(ctx.destination); o.start(); o.stop(ctx.currentTime+.17);} catch(e){}
 }
 
-function injectFault(f){
-  state.fault = f;
-  state.scopeData = f==='none' ? 'Normal waveform' : f==='open-ground' ? 'No signal / flat line' : 'Low amplitude waveform';
-  if(f!=='none') alert(`FAULT INJECTED: ${f}`);
-  render();
+function uploadEvidence(id, event){
+  const tile = state.workOrder.find(t => t.id===id); if(!tile) return;
+  [...(event.target.files||[])].forEach(file => {
+    const r = new FileReader();
+    r.onload = () => { tile.evidence.push({src:r.result, caption:file.name}); render(); };
+    r.readAsDataURL(file);
+  });
 }
 
-function takeMeasurement(point){
-  const current = circuits[state.selectedCircuit];
-  let value = current.normalReadings[point] || '0V';
-  if(state.fault!=='none' && point.includes('Battery')) value = state.fault==='low-voltage' ? '12.1V' : '0V';
-  state.measurement = {point, value};
-  render();
-}
+function removeTile(id){ state.workOrder = state.workOrder.filter(t=>t.id!==id); render(); }
 
-function render(){
-  renderTabs();
-  if(state.activeTab==='lookup'){
-    content.innerHTML = `<h3>Vehicle Lookup</h3>
-      <input placeholder="Enter VIN" value="${state.vin}" oninput="state.vin=this.value">
-      <button class="primary" onclick="fetchVehicle()">Decode & Load Vehicle</button>`;
+function badge(){ return state.workOrder.some(t=>t.result==='Fail') ? {text:'ISSUE DETECTED', cls:'stamp-fail'} : {text:'SYSTEM PASS', cls:'stamp-pass'}; }
+
+function generateTests(){
+  const num = parseInt(document.getElementById('numTests').value,10);
+  const mode = document.getElementById('scenarioType').value;
+  const generated = [];
+  for (let i=0;i<num;i++){
+    const test = TESTS[Math.floor(Math.random()*TESTS.length)];
+    let scenarios = test.scenarios;
+    if (mode!=='mixed') scenarios = scenarios.filter(s => s.result===mode);
+    if (!scenarios.length) continue;
+    const s = scenarios[Math.floor(Math.random()*scenarios.length)];
+    generated.push({test, s});
   }
-  if(state.activeTab==='dashboard'){
-    content.innerHTML = state.vehicle ? `<h3>${state.vehicle.ModelYear} ${state.vehicle.Make} ${state.vehicle.Model}</h3>
-      <p>Engine: ${state.vehicle.Engine || 'N/A'} | Transmission: ${state.vehicle.TransmissionStyle || 'N/A'}</p>
-      <input placeholder="YouTube API key" value="${state.youtubeKey}" oninput="saveApiKey(this.value)">
-      <div class="row">
-        <button class="danger" onclick="searchYouTube()">Find YouTube Videos</button>
-        <button class="primary" onclick="generatePDF()">Generate Full PDF Printout</button>
-      </div>
-      <ul>
-        <li><a target="_blank" href="https://www.rockauto.com/">Parts Catalog on RockAuto</a></li>
-        <li><a target="_blank" href="https://www.autozone.com/repairguides">Repair Guides & Diagrams on AutoZone</a></li>
-        <li><a target="_blank" href="https://www.nhtsa.gov/recalls">Official Recalls & TSBs (NHTSA)</a></li>
-      </ul>
-      <h4>Top YouTube Repair Videos</h4>
-      <ul>${state.youtubeVideos.map(v=>`<li><a target="_blank" href="https://youtube.com/watch?v=${v.id.videoId}">${v.snippet.title}</a></li>`).join('')}</ul>` : '<p>No vehicle loaded. Use Lookup tab.</p>';
-  }
-  if(state.activeTab==='obd'){
-    content.innerHTML = `<h3>OBD Helper</h3>
-      <div class="row"><input placeholder="P0301 or rough idle" value="${state.obdSearch}" oninput="state.obdSearch=this.value"><button class="primary" onclick="searchOBD()">Search OBD Codes + Symptoms</button></div>
-      <ul>${state.obdResults.map(r=>`<li><strong>${r.code}</strong> — ${r.description}</li>`).join('')}</ul>`;
-  }
-  if(state.activeTab==='simulator'){
-    const current = circuits[state.selectedCircuit];
-    content.innerHTML = `<h3>Electrical Diagnostic Simulator</h3>
-      <div class="row">
-        <button class="${state.simulatorMode==='guided'?'primary':'inactive'}" onclick="state.simulatorMode='guided';render()">Guided Diagnostic Mode</button>
-        <button class="${state.simulatorMode==='advanced'?'primary':'inactive'}" onclick="state.simulatorMode='advanced';render()">Full Advanced Circuit Builder (Falstad)</button>
-      </div>
-      ${state.simulatorMode==='guided' ? `
-        <select onchange="state.selectedCircuit=this.value;state.fault='none';state.measurement={point:'',value:''};render()">${Object.keys(circuits).map(k=>`<option value="${k}" ${k===state.selectedCircuit?'selected':''}>${circuits[k].name}</option>`)}</select>
-        <pre>${current.diagram}</pre>
-        <div class="row">
-          <button class="ok" onclick="injectFault('none')">No Fault</button>
-          <button class="danger" onclick="injectFault('open-ground')">Open Ground</button>
-          <button class="warn" onclick="injectFault('low-voltage')">Low Charging Voltage</button>
-        </div>
-        <h4>Virtual Multimeter</h4>
-        ${current.probePoints.map(p=>`<button onclick="takeMeasurement('${p}')" style="display:block;width:100%;margin-bottom:8px">Probe: ${p}</button>`).join('')}
-        <p><strong>Reading:</strong> ${state.measurement.point ? `${state.measurement.point} → ${state.measurement.value}` : 'No measurement yet.'}</p>
-        <h4>Simulated Oscilloscope</h4>
-        <pre>${state.scopeData} ${state.fault!=='none'?'← FAULT ACTIVE':''}</pre>
-      ` : `
-        <p>Full Falstad CircuitJS — build any automotive circuit.</p>
-        <iframe title="Falstad" src="https://falstad.com/circuit/circuitjs.html" style="width:100%;height:520px;border:1px solid #d1d5db;border-radius:8px"></iframe>
-      `}
-    `;
-  }
+  state.generated = generated;
+  render();
 }
 
-const tabsEl = document.getElementById('tabs');
-const content = document.getElementById('content');
+function renderBuilder(){
+  document.getElementById('builderView').innerHTML = `
+  <div class="panel">
+    <div class="title">WORK ORDER HEADER</div>
+    <div class="row two">
+      <input value="${state.shop}" oninput="state.shop=this.value">
+      <input value="${state.tech}" oninput="state.tech=this.value">
+    </div>
+    <div class="row two">
+      <input placeholder="Vehicle (Year Make Model)" value="${state.vehicle}" oninput="state.vehicle=this.value">
+      <input placeholder="VIN" value="${state.vin}" oninput="state.vin=this.value">
+    </div>
+    <input placeholder="Mileage" value="${state.mileage}" oninput="state.mileage=this.value">
+  </div>
+
+  <div class="panel">
+    <div class="title">PARTS BIN</div>
+    <div class="parts-row">${partsCatalog.map(p=>`<div class="part-chip" onclick="addPart('${p.key}')">${p.icon}<div>${p.part}</div></div>`).join('')}</div>
+  </div>
+
+  <div class="panel">
+    <div class="title">WORK ORDER CANVAS</div>
+    ${state.workOrder.map(t=>`<article class="tile">
+      <div class="tile-head"><strong>${t.part}</strong><span class="status ${t.result==='Pass'?'pass':t.result==='Fail'?'fail':'pending'} ${t.stamped?'stamp':''}">${t.result}</span></div>
+      <input value="${t.test}" oninput="updateTile(${t.id},'test',this.value)">
+      <div class="row two"><input value="${t.tool}" oninput="updateTile(${t.id},'tool',this.value)"><input value="${t.spec}" oninput="updateTile(${t.id},'spec',this.value)"></div>
+      <input placeholder="Measured" value="${t.measured}" oninput="updateTile(${t.id},'measured',this.value)">
+      <label><input type="checkbox" ${t.override?'checked':''} onchange="updateTile(${t.id},'override',this.checked)"> Override manufacturer spec</label>
+      ${t.override?`<input placeholder="Override spec" value="${t.overrideSpec}" oninput="updateTile(${t.id},'overrideSpec',this.value)">`:''}
+      <textarea placeholder="Finding notes" oninput="updateTile(${t.id},'notes',this.value)">${t.notes}</textarea>
+      <div class="row two"><label class="btn warn">📷 Add Evidence<input style="display:none" type="file" multiple accept="image/*" onchange="uploadEvidence(${t.id},event)"></label><button class="btn secondary" onclick="removeTile(${t.id})">Remove</button></div>
+      <div class="evidence">${t.evidence.map(e=>`<img src="${e.src}" alt="evidence">`).join('')}</div>
+    </article>`).join('') || '<p>Tap a part above to start building tests.</p>'}
+  </div>
+
+  <button class="btn primary" onclick="setView('preview')">Continue to Report</button>`;
+}
+
+function renderReference(){
+  document.getElementById('referenceView').innerHTML = `
+  <div class="panel"><div class="title">PROBE PLACEMENT RULES</div>
+    <div class="rules-grid">
+      <div class="rule-card"><div class="rule-num">RULE 01</div><div>Ground lead to solid chassis or battery negative before probing.</div></div>
+      <div class="rule-card"><div class="rule-num">RULE 02</div><div>Do not power-output test sensitive drivers before voltage checks.</div></div>
+      <div class="rule-card"><div class="rule-num">RULE 03</div><div>Pierce one wire at a time at shallow angle; avoid severing conductor.</div></div>
+      <div class="rule-card"><div class="rule-num">RULE 04</div><div>Resistance and diode tests require unpowered, isolated circuits.</div></div>
+    </div>
+  </div>
+
+  <div class="panel"><div class="title">TEST REFERENCE TABLE</div>
+    <div class="table-wrap"><table><thead><tr><th>Test</th><th>Tool</th><th>Condition</th><th>Pass</th><th>Fail</th></tr></thead><tbody>
+      <tr><td>Charging System</td><td>BOTH</td><td>2,000 RPM loaded</td><td style="color:var(--pass)">13.5-14.8V</td><td style="color:var(--fail)">&lt;13.5V or &gt;15V</td></tr>
+      <tr><td>Ground Voltage Drop</td><td>DVOM</td><td>Circuit under load</td><td style="color:var(--pass)">&lt;0.1V</td><td style="color:var(--fail)">&gt;0.1V</td></tr>
+      <tr><td>Battery Startup</td><td>P200</td><td>3-5 sec crank</td><td style="color:var(--pass)">&gt;9.6V</td><td style="color:var(--fail)">&lt;9.6V</td></tr>
+    </tbody></table></div>
+  </div>
+
+  <div class="panel"><div class="title">RANDOM TEST GENERATOR</div>
+    <div class="row two"><select id="numTests"><option>1</option><option selected>3</option><option>5</option></select><select id="scenarioType"><option value="mixed" selected>Mixed</option><option value="pass">Pass Only</option><option value="fail">Fail Only</option></select></div>
+    <button class="btn primary" onclick="generateTests()">Generate Tests</button>
+    <div>${state.generated.map((g,i)=>`<article class="tile"><div class="title">#${i+1} ${g.test.name}</div><div>${g.s.scenario}</div><div class="subtitle">${g.s.cond}</div><div class="status ${g.s.result==='pass'?'pass':'fail'}">${g.s.result.toUpperCase()} · ${g.s.value}</div></article>`).join('')}</div>
+  </div>`;
+}
+
+function renderPreview(){
+  const b = badge();
+  const evidence = state.workOrder.flatMap(t => t.evidence.map(e => ({src:e.src, cap:t.notes || t.test})));
+  document.getElementById('previewView').innerHTML = `
+  <div class="panel">
+    <button class="btn primary" onclick="window.print()">Generate Report / Print</button>
+  </div>
+  <article class="preview-doc">
+    <div class="preview-head"><div><strong>${state.shop}</strong><div>Technician: ${state.tech}</div></div><div><div>${state.vehicle || 'Vehicle N/A'}</div><div>VIN: ${state.vin || 'N/A'}</div><div>Mileage: ${state.mileage}</div></div></div>
+    <div class="stamp-badge ${b.cls}">[${b.text}]</div>
+    <h3>Diagnostic Checklist</h3>
+    <table><thead><tr><th>Test Performed</th><th>Tool</th><th>Spec/Limit</th><th>Measured</th><th>Result</th></tr></thead><tbody>
+      ${state.workOrder.map(t=>`<tr><td>${t.test}</td><td>${t.tool}</td><td>${t.override&&t.overrideSpec?t.overrideSpec:t.spec}</td><td>${t.measured||'—'}</td><td>${t.result==='Pass'?'✅ PASS':t.result==='Fail'?'❌ FAIL':'⚠️ PENDING'}</td></tr>`).join('') || '<tr><td colspan="5">No tests added.</td></tr>'}
+    </tbody></table>
+    <h3>Evidence</h3>
+    <div class="row two">${evidence.map(e=>`<figure><img src="${e.src}" style="width:100%;height:110px;object-fit:cover;border:1px solid #d8d8d8"><figcaption style="font-size:11px">${e.cap}</figcaption></figure>`).join('') || 'No evidence uploaded.'}</div>
+    <h3>Recommendations</h3><p>${state.recommendations}</p>
+  </article>`;
+}
+
+function render(){ renderBuilder(); renderReference(); renderPreview(); }
 render();
 </script>
 </body>
